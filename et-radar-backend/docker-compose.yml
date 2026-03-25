@@ -23,7 +23,7 @@ services:
 
   worker:
     build: .
-    command: celery -A app.tasks.celery_app worker --loglevel=info
+    command: celery -A app.tasks.celery_app worker --loglevel=info -P eventlet
     env_file: .env
     depends_on: [postgres, redis]
     volumes: [.:/app]

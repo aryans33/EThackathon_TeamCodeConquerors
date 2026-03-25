@@ -19,3 +19,8 @@ rapidfuzz==3.6.1
 scikit-learn==1.5.2
 pytz==2024.1
 pydantic-settings==2.2.1
+nsepy==0.8
+jugaad-trader==0.20
+jugaad-data==0.33.1
+requests==2.31.0
+requests-cache==1.2.1
