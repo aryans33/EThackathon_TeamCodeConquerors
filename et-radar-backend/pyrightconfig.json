@@ -1,0 +1,16 @@
+{
+  "pythonVersion": "3.13",
+  "pythonPlatform": "Windows",
+  "pythonPath": "C:/Users/LENOVO/AppData/Local/Programs/Python/Python313/python.exe",
+  "venvPath": "C:/Users/LENOVO/AppData/Local/Programs/Python/Python313",
+  "extraPaths": [
+    ".",
+    "C:/Users/LENOVO/AppData/Local/Programs/Python/Python313/Lib/site-packages"
+  ],
+  "include": ["app", "alembic"],
+  "exclude": ["**/__pycache__", "**/.git"],
+  "reportMissingImports": false,
+  "reportMissingModuleSource": false,
+  "reportUnknownVariableType": false,
+  "reportUnknownMemberType": false
+}

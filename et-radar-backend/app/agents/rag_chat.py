@@ -1,35 +1,42 @@
-from groq import Groq
+"""
+RAG Chat Agent — uses Groq (llama-3.3-70b-versatile) with streaming.
+TF-IDF retrieval of relevant signals, portfolio context injection.
+"""
+
+import json
+import re
+from datetime import datetime
+from typing import AsyncGenerator
+
+from groq import Groq, RateLimitError
 from sqlalchemy import select, desc
 from sqlalchemy.orm import joinedload
-from app.models.tables import Signal, ChatMessage, Portfolio, Stock
-from app.database import AsyncSessionLocal
-from app.config import settings
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-import json
-import os
 
-# Groq client
+from app.models.tables import Signal, ChatMessage, Portfolio, Stock
+from app.config import settings
+
+# Groq sync client (AsyncGroq has issues with streaming in thread pools)
 client = Groq(api_key=settings.GROQ_API_KEY)
 
-RAG_SYSTEM = """You are ET Radar AI — an intelligent Indian stock market assistant 
-built into the Economic Times platform.
+RAG_SYSTEM = f"""You are ET Radar AI — an intelligent Indian stock market assistant.
+Today: {datetime.now().strftime('%d %B %Y')}. Market hours: 9:15 AM - 3:30 PM IST.
 
-You have access to real-time NSE/BSE signals, corporate filings, bulk deals, 
-and the user's mutual fund portfolio.
+You have access to live NSE/BSE signals, corporate filings, bulk deals, and portfolio data.
 
 Rules:
-- Always cite your data source naturally (e.g., "Based on today's BSE filing...", "The bulk deal data shows...")
-- Never give explicit buy/sell recommendations — give analysis and let the user decide
-- Use Indian financial terminology (Sensex, Nifty, SEBI, FII, DII, crore, lakh)
-- Keep responses under 150 words unless the user asks for detail
-- If asked about a specific stock, always mention confidence level from signals
+- Cite sources naturally ("Based on today's BSE filing...", "The bulk deal data shows...")
+- Never explicitly say buy or sell — give analysis, let user decide
+- Use Indian terminology: Sensex, Nifty, SEBI, FII, DII, crore, lakh, ₹
+- Keep responses under 120 words unless user asks for detail
 - End financial analysis with: "This is analysis only, not investment advice."
-- Be conversational and helpful, not robotic"""
+- If you don't have data for something, say so honestly"""
+
 
 async def retrieve_relevant_signals(query: str, db) -> list[dict]:
-    """TF-IDF retrieval of top 5 signals relevant to query"""
+    """TF-IDF retrieval of top 5 signals relevant to query."""
     result = await db.execute(
         select(Signal)
         .options(joinedload(Signal.stock))
@@ -41,9 +48,11 @@ async def retrieve_relevant_signals(query: str, db) -> list[dict]:
     if not signals:
         return []
 
-    corpus = [f"{s.one_line_summary} {s.reason} {s.stock.symbol if s.stock else ''}" 
-              for s in signals]
-    
+    corpus = [
+        f"{s.one_line_summary} {s.reason} {s.stock.symbol if s.stock else ''}"
+        for s in signals
+    ]
+
     try:
         vectorizer = TfidfVectorizer(stop_words="english", max_features=500)
         tfidf_matrix = vectorizer.fit_transform(corpus + [query])
@@ -68,6 +77,36 @@ async def retrieve_relevant_signals(query: str, db) -> list[dict]:
         if similarities[i] > 0.05
     ]
 
+
+async def retrieve_symbol_signals(query: str, db) -> list[dict]:
+    """Auto-detect mentioned stock symbols and fetch their recent signals."""
+    mentioned = re.findall(r'\b[A-Z]{2,8}\b', query)
+    extra = []
+    for sym in mentioned[:3]:
+        try:
+            sym_result = await db.execute(
+                select(Signal)
+                .join(Stock)
+                .options(joinedload(Signal.stock))
+                .where(Stock.symbol == sym)
+                .order_by(desc(Signal.created_at))
+                .limit(2)
+            )
+            sym_signals = sym_result.scalars().all()
+            for s in sym_signals:
+                extra.append({
+                    "symbol": s.stock.symbol if s.stock else sym,
+                    "signal_type": s.signal_type,
+                    "summary": s.one_line_summary,
+                    "confidence": s.confidence,
+                    "action_hint": s.action_hint,
+                    "reason": s.reason
+                })
+        except Exception:
+            continue
+    return extra
+
+
 async def get_portfolio_summary(session_id: str, db) -> str | None:
     result = await db.execute(
         select(Portfolio)
@@ -78,7 +117,6 @@ async def get_portfolio_summary(session_id: str, db) -> str | None:
     portfolio = result.scalar_one_or_none()
     if not portfolio:
         return None
-
     try:
         data = json.loads(portfolio.raw_json)
         fund_list = ", ".join(f["fund_name"] for f in data.get("funds", []))
@@ -89,7 +127,9 @@ async def get_portfolio_summary(session_id: str, db) -> str | None:
     except Exception:
         return None
 
+
 async def get_chat_history(session_id: str, db) -> list[dict]:
+    """Returns last 6 messages in chronological order (oldest first)."""
     result = await db.execute(
         select(ChatMessage)
         .where(ChatMessage.session_id == session_id)
@@ -97,12 +137,14 @@ async def get_chat_history(session_id: str, db) -> list[dict]:
         .limit(6)
     )
     messages = result.scalars().all()
-    # Format for OpenAI/Groq: {"role": "user/assistant", "content": "..."}
     history = []
-    for m in reversed(messages):
-        role = "user" if m.role == "user" else "assistant"
-        history.append({"role": role, "content": m.content})
+    for m in reversed(messages):  # chronological order
+        history.append({
+            "role": "user" if m.role == "user" else "assistant",
+            "content": m.content
+        })
     return history
+
 
 async def get_top_signals_today(db) -> list[str]:
     result = await db.execute(
@@ -116,3 +158,45 @@ async def get_top_signals_today(db) -> list[str]:
         f"{s.stock.symbol if s.stock else '?'}: {s.one_line_summary} (confidence: {s.confidence}%)"
         for s in signals
     ]
+
+
+def _run_groq_stream_sync(messages: list, system: str) -> str:
+    """Synchronous Groq streaming — collects full response."""
+    result = ""
+    stream = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "system", "content": system}] + messages,
+        max_tokens=400,
+        temperature=0.5,
+        stream=True
+    )
+    for chunk in stream:
+        token = chunk.choices[0].delta.content or ""
+        result += token
+    return result
+
+
+async def stream_groq(messages: list, system: str) -> AsyncGenerator[str, None]:
+    """
+    Async generator that runs Groq sync streaming in a thread pool,
+    then yields word-by-word to simulate streaming for the frontend.
+    """
+    import asyncio
+
+    try:
+        tokens = await asyncio.to_thread(_run_groq_stream_sync, messages, system)
+    except RateLimitError:
+        import time
+        time.sleep(5)
+        try:
+            tokens = await asyncio.to_thread(_run_groq_stream_sync, messages, system)
+        except Exception:
+            tokens = "I'm experiencing high load. Please try again in a moment."
+    except Exception as e:
+        tokens = f"Error generating response: {str(e)}"
+
+    # Simulate streaming word by word
+    words = tokens.split(" ")
+    for i, word in enumerate(words):
+        yield word + (" " if i < len(words) - 1 else "")
+        await asyncio.sleep(0.02)

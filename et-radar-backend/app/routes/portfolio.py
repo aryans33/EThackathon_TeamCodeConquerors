@@ -1,50 +1,59 @@
-"""Portfolio analysis API endpoints."""
+"""Portfolio analysis endpoints — matches frontend contract exactly."""
 
 import json
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.tables import Portfolio
-from app.agents.portfolio_analyser import analyse_portfolio
+from app.agents.portfolio_analyser import analyse_mutual_fund_pdf
 
-router = APIRouter(prefix="/portfolio", tags=["portfolio"])
+router = APIRouter(prefix="/api/portfolio", tags=["portfolio"])
 
 
-class PortfolioInput(BaseModel):
+class PortfolioOut(BaseModel):
     session_id: str
-    holdings: list[dict]  # [{symbol, qty, avg_price, buy_date}, ...]
+    total_value: float
+    xirr: Optional[float]
+    funds: list
+    overlap: list
+    expense_drag: float
+    rebalancing_suggestion: str
 
 
-@router.post("/analyse")
-async def analyse(payload: PortfolioInput, db: AsyncSession = Depends(get_db)):
-    """Analyse a user-submitted portfolio and return insights."""
-    result = await analyse_portfolio(payload.holdings)
+@router.post("/upload", response_model=PortfolioOut)
+async def upload_portfolio(
+    file: UploadFile = File(...),
+    session_id: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Upload a CAMS or KFintech PDF statement.
+    Multipart form: file (PDF) + session_id (string).
+    Returns portfolio analysis with XIRR, fund breakdown, overlap, expense drag.
+    """
+    # Size check
+    pdf_bytes = await file.read()
+    if len(pdf_bytes) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large — maximum 10MB allowed")
 
-    # Persist to DB
-    portfolio = Portfolio(
-        session_id=payload.session_id,
-        raw_json=json.dumps(payload.holdings),
-        total_value=result.get("total_value", 0),
-        xirr=result.get("xirr"),
-    )
-    db.add(portfolio)
-    await db.commit()
-    await db.refresh(portfolio)
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=400,
+            detail="Could not parse PDF - ensure it is a CAMS or KFintech statement"
+        )
 
-    return {
-        "portfolio_id": portfolio.id,
-        **result,
-    }
+    result = await analyse_mutual_fund_pdf(pdf_bytes, session_id, db)
+    return result
 
 
 @router.get("/history")
 async def portfolio_history(
-    session_id: str = Query(..., description="Session ID to fetch history for"),
+    session_id: str,
     db: AsyncSession = Depends(get_db),
 ):
     """Get portfolio analysis history for a session."""
@@ -77,7 +86,7 @@ async def get_portfolio(portfolio_id: int, db: AsyncSession = Depends(get_db)):
     return {
         "id": portfolio.id,
         "session_id": portfolio.session_id,
-        "holdings": json.loads(portfolio.raw_json),
+        "data": json.loads(portfolio.raw_json),
         "total_value": portfolio.total_value,
         "xirr": portfolio.xirr,
         "created_at": portfolio.created_at.isoformat(),

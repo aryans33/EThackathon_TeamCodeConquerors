@@ -11,6 +11,8 @@ import asyncio
 def fetch_all_prices():
     asyncio.run(_fetch_all_prices_async())
 
+import requests
+
 async def _fetch_all_prices_async():
     symbols = settings.symbols_list
     async with AsyncSessionLocal() as db:
@@ -25,10 +27,23 @@ async def _fetch_all_prices_async():
                 result = await db.execute(select(Stock).where(Stock.symbol == symbol))
                 stock = result.scalar_one_or_none()
                 if not stock:
-                    stock = Stock(symbol=symbol, name=ticker.info.get("longName", symbol),
-                                  exchange="NSE", sector=ticker.info.get("sector", "Unknown"))
+                    info = ticker.info
+                    stock = Stock(
+                        symbol=symbol,
+                        name=info.get("longName", symbol),
+                        exchange="NSE",
+                        sector=info.get("sector") or info.get("industry") or "Unknown"
+                    )
                     db.add(stock)
                     await db.flush()
+                else:
+                    # Update sector if missing or unknown
+                    if not stock.sector or stock.sector == "Unknown":
+                        try:
+                            info = ticker.info
+                            stock.sector = info.get("sector") or info.get("industry") or "Unknown"
+                        except Exception:
+                            pass
 
                 # Upsert OHLCV rows
                 for date, row in hist.iterrows():

@@ -1,31 +1,43 @@
-import httpx
-from sqlalchemy import select
-from app.database import AsyncSessionLocal
-from app.models.tables import Stock, BulkDeal
-from app.tasks import celery_app
-from datetime import date
+"""Fetch bulk deals from NSE using stdlib urllib (no httpx dependency)."""
+
 import asyncio
+import json
+import urllib.request
+from datetime import date
+from sqlalchemy import select  # type: ignore[import]
+from app.database import AsyncSessionLocal  # type: ignore[import]
+from app.models.tables import Stock, BulkDeal  # type: ignore[import]
+from app.tasks import celery_app  # type: ignore[import]
+
 
 @celery_app.task(name="app.tasks.fetch_bulk_deals.fetch_bulk_deals")
 def fetch_bulk_deals():
     asyncio.run(_fetch_bulk_deals_async())
 
+
+def _nse_get(url: str) -> bytes:
+    """Sync NSE fetch with session cookie workaround."""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json",
+        "Referer": "https://www.nseindia.com",
+    }
+    # Hit homepage first to get session cookie
+    opener = urllib.request.build_opener()
+    opener.addheaders = list(headers.items())
+    opener.open("https://www.nseindia.com", timeout=10).read()
+    with opener.open(url, timeout=20) as resp:
+        return resp.read()
+
+
 async def _fetch_bulk_deals_async():
     url = "https://www.nseindia.com/api/bulk-deals"
-    headers = {
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "application/json",
-        "Referer": "https://www.nseindia.com"
-    }
-    async with httpx.AsyncClient(timeout=20) as client:
-        try:
-            # NSE requires a session cookie — first hit the homepage
-            await client.get("https://www.nseindia.com", headers=headers)
-            res = await client.get(url, headers=headers)
-            data = res.json()
-        except Exception as e:
-            print(f"Bulk deal fetch error: {e}")
-            return
+    try:
+        raw = await asyncio.to_thread(lambda: _nse_get(url))  # type: ignore[arg-type]
+        data = json.loads(raw)
+    except Exception as e:
+        print(f"Bulk deal fetch error: {e}")
+        return
 
     async with AsyncSessionLocal() as db:
         stocks_result = await db.execute(select(Stock))

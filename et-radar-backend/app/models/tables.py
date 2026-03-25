@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 from typing import Optional, List
 
-from sqlalchemy import (
+from sqlalchemy import (  # type: ignore[import]
     String,
     Text,
     Float,
@@ -17,9 +17,9 @@ from sqlalchemy import (
     Index,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship  # type: ignore[import]
 
-from app.database import Base
+from app.database import Base  # type: ignore[import]
 
 
 class Stock(Base):
@@ -134,7 +134,7 @@ class Signal(Base):
     )
     signal_type: Mapped[str] = mapped_column(String(50), nullable=False)
     confidence: Mapped[int] = mapped_column(Integer, nullable=False)
-    one_line_summary: Mapped[str] = mapped_column(String(500), nullable=False)
+    one_line_summary: Mapped[str] = mapped_column(String(200), nullable=False)
     action_hint: Mapped[str] = mapped_column(String(50), nullable=False)
     reason: Mapped[str] = mapped_column(String(1000), nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(
