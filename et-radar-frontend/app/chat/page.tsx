@@ -1,47 +1,44 @@
-/* eslint-disable */
-"use client"
-import React, { useState, useEffect, useRef } from "react"
-import { Send, Bot } from "lucide-react"
-import { getSessionId } from "@/lib/session"
-import { DEMO_MODE } from "@/lib/api"
+'use client'
+import { useState, useEffect, useRef } from 'react'
+import { streamChat } from '@/lib/api'
+import { getSessionId } from '@/lib/session'
 
 interface Message {
   role: 'user' | 'assistant'
   content: string
-  ts: number
+  timestamp: Date
   isError?: boolean
 }
 
-const CHIPS = [
-  "What are today's top signals?",
-  "Analyse my portfolio risk",
-  "Which stocks show breakout patterns today?",
-  "Explain the biggest bulk deal today"
-]
+// Simple markdown formatter
+function renderMarkdown(text: string) {
+  // Bold
+  let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+  // Lists
+  html = html.split('\n').map(line => {
+    if (line.trim().startsWith('•')) {
+      return `<li class="ml-4 list-disc">${line.replace(/^•\s*/, '')}</li>`
+    }
+    return line
+  }).join('<br/>')
 
-const DEMO_RESPONSES: Record<string, string> = {
-  "signals": "Based on today's activity, I'm seeing strong signals for **TATAMOTORS** with 84% confidence — Q3 PAT beat estimates by 48% driven by EV segment growth.\n\n**HDFCBANK** also shows institutional accumulation with a ₹1,642 bulk buy from Goldman Sachs.",
-  "portfolio": "Your portfolio shows a 14.7% XIRR which is healthy. However, there's a 62% overlap between Mirae Asset Large Cap and HDFC Mid Cap — consider consolidating one of them.",
-  "default": "I'm analysing the latest market data for you. Today's NSE saw broad-based buying in Banking and Auto sectors.\n\nKey signals include:\n• 2 earnings beats\n• 1 bulk deal worth noting."
+  return <div dangerouslySetInnerHTML={{ __html: html }} className="leading-relaxed" />
 }
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
-  const [inputValue, setInputValue] = useState("")
+  const [streamingContent, setStreamingContent] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [streamingContent, setStreamingContent] = useState("")
+  const [input, setInput] = useState('')
   const [hasPortfolio, setHasPortfolio] = useState(false)
   const [includePortfolio, setIncludePortfolio] = useState(true)
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('et_radar_portfolio')
-      if (stored || DEMO_MODE) {
-        setHasPortfolio(true)
-      }
+      if (stored) setHasPortfolio(true)
     }
   }, [])
 
@@ -49,10 +46,45 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, streamingContent])
 
-  const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value)
-    e.target.style.height = 'auto'
-    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
+  const handleSubmit = async (text: string = input.trim()) => {
+    if (!text || isLoading) return
+    
+    setInput('')
+    setMessages(prev => [...prev, {
+      role: 'user', content: text, timestamp: new Date()
+    }])
+    setIsLoading(true)
+    setStreamingContent('')
+    
+    try {
+      let full = ''
+      await streamChat(
+        text,
+        getSessionId(),
+        includePortfolio,
+        (token) => {
+          full += token
+          setStreamingContent(full)
+        },
+        () => {
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: full,
+            timestamp: new Date()
+          }])
+          setStreamingContent('')
+          setIsLoading(false)
+        }
+      )
+    } catch (e) {
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'AI is temporarily unavailable. Please try again.',
+        timestamp: new Date(),
+        isError: true
+      }])
+      setIsLoading(false)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -62,139 +94,51 @@ export default function ChatPage() {
     }
   }
 
-  const handleSubmit = () => {
-    if (!inputValue.trim() || isLoading) return
-    const msg = inputValue.trim()
-    setInputValue("")
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
-    }
-    streamMessage(msg)
-  }
-
-  const handleChipClick = (msg: string) => {
-    if (isLoading) return
-    streamMessage(msg)
-  }
-
-  const streamMessage = async (userMessage: string) => {
-    setMessages(prev => [...prev, {role:'user', content:userMessage, ts:Date.now()}])
-    setIsLoading(true)
-    setStreamingContent('')
-    
-    if (DEMO_MODE) {
-      await new Promise(r => setTimeout(r, 600))
-      const lowerMsg = userMessage.toLowerCase()
-      let responseKey = "default"
-      if (lowerMsg.includes("signal") || lowerMsg.includes("breakout") || lowerMsg.includes("bulk")) {
-        responseKey = "signals"
-      } else if (lowerMsg.includes("portfolio") || lowerMsg.includes("risk")) {
-        responseKey = "portfolio"
-      }
-      
-      const targetText = DEMO_RESPONSES[responseKey]
-      let currentText = ""
-      for (let i = 0; i < targetText.length; i++) {
-        currentText += targetText[i]
-        setStreamingContent(currentText)
-        await new Promise(r => setTimeout(r, 20))
-      }
-      
-      setMessages(prev => [...prev, {role:'assistant', content:currentText, ts:Date.now()}])
-      setStreamingContent('')
-      setIsLoading(false)
-      return
-    }
-
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/chat`, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          message: userMessage,
-          session_id: getSessionId(),
-          include_portfolio: includePortfolio
-        })
-      })
-      
-      if (!res.ok) throw new Error('API error')
-      
-      const reader = res.body!.getReader()
-      const decoder = new TextDecoder()
-      let fullContent = ''
-      
-      while (true) {
-        const {done, value} = await reader.read()
-        if (done) break
-        const chunk = decoder.decode(value)
-        fullContent += chunk
-        setStreamingContent(fullContent)
-      }
-      
-      setMessages(prev => [...prev, {role:'assistant', content:fullContent, ts:Date.now()}])
-      setStreamingContent('')
-    } catch (e) {
-      setMessages(prev => [...prev, {role:'assistant', content:'AI is temporarily unavailable. Please try again.', ts:Date.now(), isError:true}])
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const renderMarkdown = (text: string) => {
-    let html = text
-      .replace(/\*\*(.*?)\*\*/g, '<strong class="text-brand-text font-semibold">$1</strong>')
-      .replace(/• (.*?)(?=\n|$)/g, '<div class="flex items-start gap-2 mt-1"><div class="w-1.5 h-1.5 rounded-full bg-brand-green mt-1.5 shrink-0"></div><span class="flex-1">$1</span></div>')
-      .replace(/\n\n/g, '<div class="h-3"></div>')
-      .replace(/\n(?!\<div)/g, '<br/>')
-    return { __html: html }
-  }
-
-  const formatTime = (ts: number) => {
-    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }
+  const starterChips = [
+    "What are today's top signals?",
+    "Which stocks show breakout patterns?",
+    "Analyse my portfolio risk",
+    "Explain the biggest bulk deal today"
+  ]
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] bg-brand-card/30 border border-brand-border rounded-xl overflow-hidden shadow-2xl">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-brand-border bg-brand-bg">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold text-brand-text tracking-tight">ET Radar AI</h1>
-          <div className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-green opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-green"></span>
-          </div>
+    <main className="flex flex-col h-[calc(100vh-65px)] dark:bg-[#051009] light:bg-gray-50 transition-colors">
+      {/* TOP BAR */}
+      <div className="flex justify-between items-center px-6 py-4 dark:border-[#143a2b] light:border-gray-300 border-b dark:bg-[#0c1f18]/50 light:bg-white">
+        <div className="flex items-center space-x-3">
+          <h1 className="text-xl font-bold dark:text-[#f0fdf4] light:text-[#1f2937]">ET Radar AI</h1>
+          <span className="w-2 h-2 rounded-full dark:bg-[#9ae5ab] light:bg-green-600 animate-pulse mt-1" />
         </div>
-
+        
         {hasPortfolio && (
-          <label className="flex items-center gap-3 cursor-pointer group">
-            <span className="text-sm font-medium text-brand-muted group-hover:text-brand-muted transition-colors">Portfolio context</span>
-            <div className="relative">
-              <input 
-                type="checkbox" 
-                className="sr-only" 
-                checked={includePortfolio}
-                onChange={() => setIncludePortfolio(!includePortfolio)}
-              />
-              <div className={`block w-10 h-6 rounded-full transition-colors duration-300 ${includePortfolio ? 'bg-brand-green' : 'bg-slate-700'}`}></div>
-              <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 shadow-sm ${includePortfolio ? 'transform translate-x-4' : ''}`}></div>
-            </div>
+          <label className="flex items-center space-x-2 cursor-pointer dark:bg-[#143a2b] light:bg-gray-200 px-3 py-1.5 rounded-lg dark:border-[#225a44] light:border-gray-400 border dark:hover:border-[#2d704d] light:hover:border-gray-500 transition-colors">
+            <input 
+              type="checkbox" 
+              checked={includePortfolio}
+              onChange={(e) => setIncludePortfolio(e.target.checked)}
+              className="accent-[#9ae5ab] w-4 h-4 cursor-pointer"
+            />
+            <span className="text-sm font-medium dark:text-[#9ca3af] light:text-gray-700 select-none">Portfolio context</span>
           </label>
         )}
       </div>
 
-      {/* Message Area */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-brand-bg scroll-smooth">
-        {messages.length === 0 && !isLoading && !streamingContent ? (
-          <div className="h-full flex flex-col items-center justify-center max-w-2xl mx-auto text-center animate-in fade-in zoom-in duration-500">
-            <h2 className="text-3xl font-bold text-brand-text mb-3 tracking-tight">What would you like to know?</h2>
-            <p className="text-brand-muted mb-10 text-base">Ask about signals, your portfolio, or any NSE/BSE stock</p>
+      {/* MESSAGE AREA */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+        {messages.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center max-w-2xl mx-auto">
+            <div className="w-16 h-16 dark:bg-[#143a2b] light:bg-gray-200 rounded-2xl flex items-center justify-center mb-6 dark:border-[#225a44] light:border-gray-300 border">
+              <svg className="w-8 h-8 dark:text-[#9ae5ab] light:text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+            </div>
+            <h2 className="text-2xl font-bold dark:text-[#f0fdf4] light:text-[#1f2937] mb-2">What would you like to know?</h2>
+            <p className="dark:text-[#64748b] light:text-gray-600 mb-8">Ask about signals, your portfolio, or any NSE/BSE stock.</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
-              {CHIPS.map((chip, i) => (
+              {starterChips.map(chip => (
                 <button
-                  key={i}
-                  onClick={() => handleChipClick(chip)}
-                  className="rounded-full border border-brand-border bg-brand-card px-5 py-3 text-sm text-brand-muted hover:border-brand-green hover:text-brand-text transition-all text-left shadow-sm hover:shadow-brand-green/10"
+                  key={chip}
+                  onClick={() => handleSubmit(chip)}
+                  className="rounded-full dark:border-[#143a2b] light:border-gray-300 border dark:bg-[#0c1f18] light:bg-gray-100 px-4 py-3 text-sm dark:text-[#9ca3af] light:text-gray-700 dark:hover:border-[#225a44] light:hover:border-green-400 dark:hover:text-white light:hover:text-[#1f2937] transition-colors"
                 >
                   {chip}
                 </button>
@@ -202,97 +146,76 @@ export default function ChatPage() {
             </div>
           </div>
         ) : (
-          <div className="space-y-6 max-w-4xl mx-auto pb-4 pt-2">
+          <div className="max-w-3xl mx-auto space-y-6 pb-4">
             {messages.map((msg, i) => (
-              <div key={i} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                <div className={`flex items-end gap-3 max-w-[85%] md:max-w-[75%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                  {msg.role === 'assistant' && (
-                    <div className="w-8 h-8 rounded-full bg-brand-green/20 border border-brand-green/40 flex items-center justify-center shrink-0 mb-1 shadow-inner">
-                      <span className="text-brand-green text-xs font-bold">ET</span>
-                    </div>
-                  )}
-                  
-                  <div className={`px-5 py-3.5 text-[14.5px] leading-relaxed shadow-sm ${
-                    msg.role === 'user' 
-                      ? 'bg-[#1e3a5f] rounded-2xl rounded-tr-sm text-brand-text' 
-                      : msg.isError 
-                        ? 'bg-brand-red/10 border border-brand-red/20 rounded-2xl rounded-tl-sm text-brand-red'
-                        : 'bg-brand-card border border-brand-border rounded-2xl rounded-tl-sm text-brand-muted'
-                  }`}>
-                    {msg.role === 'assistant' && !msg.isError ? (
-                      <div dangerouslySetInnerHTML={renderMarkdown(msg.content)} className="whitespace-pre-wrap" />
-                    ) : (
-                      msg.content
-                    )}
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {msg.role === 'assistant' && (
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full dark:bg-green-900 light:bg-green-200 dark:border-green-800 light:border-green-400 border flex items-center justify-center text-xs dark:text-[#9ae5ab] light:text-green-700 font-bold mr-3 mt-1 select-none">
+                    ET
                   </div>
+                )}
+                
+                <div className="flex flex-col max-w-[80%]">
+                  <div className={`px-5 py-3 text-sm ${
+                    msg.role === 'user' 
+                      ? 'dark:bg-[#143a2b] light:bg-green-100 rounded-2xl rounded-tr-sm dark:text-white light:text-green-900 dark:border-[#225a44] light:border-green-300 border' 
+                      : msg.isError
+                        ? 'dark:bg-red-900/20 light:bg-red-100 dark:border-red-900 light:border-red-300 border rounded-2xl rounded-tl-sm dark:text-red-400 light:text-red-700'
+                        : 'dark:bg-[#0c1f18] light:bg-white rounded-2xl rounded-tl-sm dark:text-[#e2e8f0] light:text-[#1f2937] dark:border-[#143a2b] light:border-gray-300 border shadow-sm'
+                  }`}>
+                    {msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content}
+                  </div>
+                  <span className={`text-xs dark:text-[#64748b] light:text-gray-600 mt-1.5 ${msg.role === 'user' ? 'text-right' : 'text-left ml-1'}`}>
+                    {msg.timestamp.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
-                <span className={`text-[11px] font-medium text-slate-500 mt-2 ${msg.role === 'user' ? 'mr-1' : 'ml-12'}`}>
-                  {formatTime(msg.ts)}
-                </span>
               </div>
             ))}
             
-            {/* Streaming Message State */}
-            {(isLoading || streamingContent) && (
-              <div className="flex flex-col items-start animate-in fade-in duration-300">
-                <div className="flex items-end gap-3 max-w-[85%] md:max-w-[75%] flex-row">
-                  <div className="w-8 h-8 rounded-full bg-brand-green/20 border border-brand-green/40 flex items-center justify-center shrink-0 mb-1 shadow-inner">
-                    <span className="text-brand-green text-xs font-bold">ET</span>
+            {/* STREAMING BUBBLE */}
+            {isLoading && streamingContent && (
+               <div className="flex justify-start">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full dark:bg-green-900 light:bg-green-200 dark:border-green-800 light:border-green-400 border flex items-center justify-center text-xs dark:text-[#9ae5ab] light:text-green-700 font-bold mr-3 mt-1 select-none">
+                    ET
                   </div>
-                  
-                  <div className="px-5 py-3.5 text-[14.5px] leading-relaxed shadow-sm bg-brand-card border border-brand-border rounded-2xl rounded-tl-sm text-brand-muted min-w-[60px] min-h-[52px]">
-                    {streamingContent ? (
-                      <div className="whitespace-pre-wrap">
-                        <span dangerouslySetInnerHTML={renderMarkdown(streamingContent)} />
-                        <span className="inline-block w-2.5 h-4 ml-1 bg-brand-green animate-pulse align-middle rounded-sm" />
-                      </div>
-                    ) : (
-                      <div className="flex items-center h-full gap-1.5 px-2">
-                        <div className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <div className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <div className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                      </div>
-                    )}
+                  <div className="dark:bg-[#0c1f18] light:bg-white dark:border-[#143a2b] light:border-gray-300 border shadow-sm rounded-2xl rounded-tl-sm px-5 py-3 text-sm dark:text-[#e2e8f0] light:text-[#1f2937] max-w-[80%]">
+                    {renderMarkdown(streamingContent)}
+                    <span className="inline-block w-1.5 h-3.5 dark:bg-[#9ae5ab] light:bg-green-600 animate-pulse ml-1 align-middle" />
                   </div>
-                </div>
-              </div>
+               </div>
             )}
-            <div ref={messagesEndRef} className="h-6" />
+            
+            {/* INVISIBLE SCROLL ANCHOR */}
+            <div ref={messagesEndRef} className="h-2" />
           </div>
         )}
       </div>
 
-      {/* Input Area */}
-      <div className="p-4 md:p-6 bg-brand-bg border-t border-brand-border relative">
-        <div className="max-w-4xl mx-auto relative">
-          {includePortfolio && hasPortfolio && (
-            <div className="absolute -top-11 left-1/2 transform -translate-x-1/2 flex items-center gap-2 bg-brand-card border border-brand-border text-brand-green text-[11px] px-3 py-1.5 rounded-full uppercase font-bold tracking-wider shadow-lg shadow-black/20">
-              <div className="w-1.5 h-1.5 rounded-full bg-brand-green animate-pulse" />
-              Portfolio context active
-            </div>
-          )}
-          
-          <div className="flex items-end gap-3 relative">
-            <textarea
-              ref={textareaRef}
-              value={inputValue}
-              onChange={handleTextareaInput}
-              onKeyDown={handleKeyDown}
-              disabled={isLoading}
-              rows={1}
-              className="flex-1 bg-brand-card border border-brand-border rounded-xl px-5 py-4 text-[15px] text-brand-text placeholder-slate-500 focus:outline-none focus:border-brand-green focus:ring-1 focus:ring-brand-green/50 transition-all resize-none disabled:opacity-50 overflow-y-auto min-h-[56px] max-h-[160px] shadow-sm"
-              placeholder="Ask about any stock, signal or your portfolio..."
-            />
-            <button
-              onClick={handleSubmit}
-              disabled={!inputValue.trim() || isLoading}
-              className="bg-brand-green hover:bg-[#00a866] text-[#0a0e1a] rounded-xl p-4 flex items-center justify-center shrink-0 transition-transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed shadow-sm font-semibold"
-            >
-              <Send className="w-5 h-5 fill-current" />
-            </button>
-          </div>
+      {/* INPUT BAR */}
+      <div className="p-4 dark:bg-[#0c1f18] light:bg-white dark:border-[#143a2b] light:border-gray-300 border-t">
+        <div className="max-w-3xl mx-auto relative flex items-end space-x-2">
+          <textarea 
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isLoading}
+            placeholder="Ask about any stock, signal, or your portfolio..."
+            rows={1}
+            className="flex-1 dark:bg-[#143a2b] light:bg-gray-100 dark:border-[#225a44] light:border-gray-300 border rounded-xl px-4 py-3 text-sm dark:text-white light:text-[#1f2937] dark:placeholder-[#64748b] light:placeholder-gray-500 resize-none focus:outline-none focus:border-[#9ae5ab] focus:ring-1 focus:ring-[#9ae5ab] disabled:opacity-50 min-h-[46px] max-h-32 overflow-y-auto transition-colors"
+          />
+          <button 
+            onClick={() => handleSubmit()}
+            disabled={isLoading || !input.trim()}
+            className="flex-shrink-0 dark:bg-[#9ae5ab] dark:hover:bg-[#c6f6d5] light:bg-green-600 light:hover:bg-green-700 dark:disabled:bg-[#143a2b] light:disabled:bg-gray-300 dark:disabled:text-[#64748b] light:disabled:text-gray-600 dark:text-[#07130f] light:text-white rounded-xl w-12 h-12 flex items-center justify-center transition-all disabled:opacity-50"
+          >
+            {isLoading ? (
+              <div className="w-5 h-5 dark:border-[#64748b] light:border-gray-400 border-2 dark:border-t-white light:border-t-black rounded-full animate-spin" />
+            ) : (
+              <svg className="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+            )}
+          </button>
         </div>
       </div>
-    </div>
+    </main>
   )
 }

@@ -1,189 +1,609 @@
-"use client"
-import React, { useState } from 'react'
-import Link from 'next/link'
-import { Activity, Gauge, Upload, FileSearch, MessageSquare, Lightbulb } from 'lucide-react'
+"use client";
+import { useEffect, useRef, useState } from "react";
 
-export default function LandingPage() {
-  const [rotation, setRotation] = useState({ x: 15, y: -20 })
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!e.currentTarget) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    const rX = 15 - ((y / rect.height) - 0.5) * 20
-    const rY = -20 + ((x / rect.width) - 0.5) * 20
-    setRotation({ x: rX, y: rY })
-  }
-
-  const handleMouseLeave = () => {
-    setRotation({ x: 15, y: -20 })
-  }
+/* ─────────────────────────────────────────────
+   TRUE CSS 3D CUBOID  helper
+   w / h / d  = width / height / depth (px)
+   children rendered on the FRONT face only
+───────────────────────────────────────────── */
+function Cuboid({
+  w, h, d,
+  faceColor = "rgba(12,31,24,0.97)",
+  topColor   = "rgba(20,48,32,0.97)",
+  sideColor  = "rgba(7,19,15,0.97)",
+  borderColor = "rgba(154,229,171,0.22)",
+  children,
+  style = {},
+}: {
+  w: number; h: number; d: number;
+  faceColor?: string; topColor?: string; sideColor?: string; borderColor?: string;
+  children?: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
+  const shared: React.CSSProperties = {
+    position: "absolute",
+    boxSizing: "border-box",
+    border: `1px solid ${borderColor}`,
+    backfaceVisibility: "hidden",
+  };
 
   return (
-    <div className="flex flex-col min-h-screen overflow-hidden animate-in fade-in duration-700">
-      {/* Hero Section */}
-      <section className="relative pt-20 pb-20 lg:pt-32 lg:pb-32">
-        <div className="flex flex-col lg:flex-row items-center gap-16">
+    <div style={{ width: w, height: h, position: "relative", transformStyle: "preserve-3d", ...style }}>
+      {/* FRONT */}
+      <div style={{
+        ...shared,
+        width: w, height: h,
+        background: faceColor,
+        transform: `translateZ(${d / 2}px)`,
+        borderRadius: 8,
+        overflow: "hidden",
+        boxShadow: "inset 0 1px 0 rgba(154,229,171,0.15)",
+      }}>
+        {/* top shimmer line */}
+        <div style={{ position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(154,229,171,0.35),transparent)" }}/>
+        {children}
+      </div>
 
-          {/* Left: Typography & CTAs */}
-          <div className="flex-1 space-y-8 z-10 w-full">
-            <h1 className="text-5xl lg:text-7xl font-extrabold text-brand-text leading-[1.1] tracking-tight">
-              Master the Markets<br />
-              <span className="text-brand-muted/80">With AI-Powered Investemt Aid.</span>
-            </h1>
-            <p className="text-lg text-brand-muted max-w-xl leading-relaxed">
-              Real-time Signals, In-depth Portfolio X-Ray, and a Market-Savvy AI Chat, all at your fingertips.
-            </p>
-            <div className="flex flex-wrap items-center gap-4 pt-4">
-              <Link
-                href="/dashboard"
-                className="bg-brand-green hover:bg-[#00a866] text-white dark:text-[#0a0e1a] font-bold px-8 py-3.5 rounded-full transition-all hover:scale-105 active:scale-95 shadow-lg shadow-brand-green/20"
-              >
-                Start Free Trial
-              </Link>
-              <button className="bg-transparent border-2 border-brand-green/50 text-brand-green hover:bg-brand-green/10 font-bold px-8 py-3.5 rounded-full transition-all">
-                See Case Studies
-              </button>
-            </div>
+      {/* BACK */}
+      <div style={{
+        ...shared,
+        width: w, height: h,
+        background: sideColor,
+        transform: `translateZ(${-d / 2}px) rotateY(180deg)`,
+        borderRadius: 8,
+      }}/>
+
+      {/* LEFT */}
+      <div style={{
+        ...shared,
+        width: d, height: h,
+        background: sideColor,
+        left: -d / 2,
+        transform: `rotateY(-90deg) translateZ(${-d / 2}px)`,
+        transformOrigin: "right center",
+        borderRadius: 0,
+      }}/>
+
+      {/* RIGHT */}
+      <div style={{
+        ...shared,
+        width: d, height: h,
+        background: sideColor,
+        left: w - d / 2,
+        transform: `rotateY(90deg) translateZ(${-d / 2}px)`,
+        transformOrigin: "left center",
+        borderRadius: 0,
+      }}/>
+
+      {/* TOP */}
+      <div style={{
+        ...shared,
+        width: w, height: d,
+        background: topColor,
+        top: -d / 2,
+        transform: `rotateX(90deg) translateZ(${-d / 2}px)`,
+        transformOrigin: "center bottom",
+        borderRadius: "8px 8px 0 0",
+      }}/>
+
+      {/* BOTTOM */}
+      <div style={{
+        ...shared,
+        width: w, height: d,
+        background: "rgba(0,0,0,0.5)",
+        top: h - d / 2,
+        transform: `rotateX(-90deg) translateZ(${-d / 2}px)`,
+        transformOrigin: "center top",
+        borderRadius: "0 0 8px 8px",
+      }}/>
+    </div>
+  );
+}
+
+/* ── mini bar chart ── */
+function MiniBar({ vals, accent = "#9ae5ab" }: { vals: number[]; accent?: string }) {
+  return (
+    <div style={{ display:"flex", alignItems:"flex-end", gap:3, height:44 }}>
+      {vals.map((v,i) => (
+        <div key={i} style={{
+          flex:1, height:`${v}%`, borderRadius:"2px 2px 0 0",
+          background: i===3 ? accent : `rgba(154,229,171,${0.2+v/200})`,
+          transition: `height .5s ease ${i*.07}s`
+        }}/>
+      ))}
+    </div>
+  );
+}
+
+/* ── mini line chart ── */
+function MiniLine({ id, color="#9ae5ab", path, fillPath }: { id:string; color?:string; path:string; fillPath:string }) {
+  return (
+    <svg width="100%" height="46" viewBox="0 0 180 46" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity=".4"/>
+          <stop offset="100%" stopColor={color} stopOpacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d={fillPath} fill={`url(#${id})`}/>
+      <path d={path} fill="none" stroke={color} strokeWidth="2"/>
+    </svg>
+  );
+}
+
+/* ─────────── card contents ─────────── */
+const PortfolioContent = () => (
+  <div style={{ padding:"10px 10px 8px", height:"100%", boxSizing:"border-box" }}>
+    <div style={{ fontSize:8, color:"#c6f6d5", fontWeight:700, letterSpacing:1, marginBottom:6 }}>PERSONAL PORTFOLIO</div>
+    <MiniBar vals={[55,80,42,100,68,50,75]}/>
+    <div style={{ display:"flex", flexWrap:"wrap", gap:"4px 8px", marginTop:7 }}>
+      {["Stocks","NFT","Coin","F&O"].map((l,i)=>(
+        <div key={l} style={{ display:"flex", alignItems:"center", gap:3 }}>
+          <div style={{ width:5, height:5, borderRadius:"50%", background:["#9ae5ab","#c6f6d5","#a0f3c5","#76d8a8"][i] }}/>
+          <span style={{ fontSize:7, color:"#9ca3af" }}>{l}</span>
+        </div>
+      ))}
+    </div>
+    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:3, marginTop:7 }}>
+      {["₹2.4L","₹89K","₹1.1L","₹34K"].map((v,i)=>(
+        <div key={i} style={{ background:"rgba(154,229,171,0.07)", borderRadius:4, padding:"3px 6px" }}>
+          <div style={{ fontSize:6, color:"#6b7280" }}>{["Stocks","NFT","Coin","F&O"][i]}</div>
+          <div style={{ fontSize:9, color:"#9ae5ab", fontWeight:700 }}>{v}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const NiftyContent = () => (
+  <div style={{ padding:"10px 10px 8px", height:"100%", boxSizing:"border-box" }}>
+    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:3 }}>
+      <div style={{ fontSize:8, color:"#c6f6d5", fontWeight:700, letterSpacing:1 }}>NIFTY 50</div>
+      <span style={{ fontSize:7, background:"rgba(154,229,171,0.15)", color:"#9ae5ab", borderRadius:3, padding:"1px 5px" }}>▲ +1.24%</span>
+    </div>
+    <div style={{ fontSize:15, fontWeight:800, color:"#f0fdf4", marginBottom:1 }}>22,419</div>
+    <MiniLine id="niftyG"
+      path="M0,38 C25,32 45,24 70,18 C95,12 110,20 135,10 C155,4 170,5 180,3"
+      fillPath="M0,38 C25,32 45,24 70,18 C95,12 110,20 135,10 C155,4 170,5 180,3 L180,46 L0,46Z"/>
+    <div style={{ display:"flex", justifyContent:"space-between", marginTop:4 }}>
+      {["NSE","BSE","MCX","NCDEX"].map(ex=>(
+        <div key={ex} style={{ fontSize:6, color:"#6b7280", background:"rgba(255,255,255,0.04)", padding:"2px 4px", borderRadius:3 }}>{ex}</div>
+      ))}
+    </div>
+    <div style={{ marginTop:6, padding:"5px 7px", background:"rgba(154,229,171,0.08)", borderRadius:5, borderLeft:"2px solid #9ae5ab" }}>
+      <div style={{ fontSize:7, color:"#c6f6d5", fontWeight:600 }}>Nifty Fund Analysis</div>
+      <div style={{ fontSize:6, color:"#6b7280", marginTop:1 }}>Top performer: HDFC Nifty 50 ETF</div>
+    </div>
+  </div>
+);
+
+const MutualContent = () => (
+  <div style={{ padding:"10px 10px 8px", height:"100%", boxSizing:"border-box" }}>
+    <div style={{ fontSize:8, color:"#c6f6d5", fontWeight:700, letterSpacing:1, marginBottom:5 }}>MUTUAL FUND ANALYSIS</div>
+    <MiniLine id="mfG" color="#a0f3c5"
+      path="M0,40 C30,34 55,28 80,20 C105,13 125,18 155,10 C168,7 175,6 180,5"
+      fillPath="M0,40 C30,34 55,28 80,20 C105,13 125,18 155,10 C168,7 175,6 180,5 L180,46 L0,46Z"/>
+    <div style={{ display:"flex", justifyContent:"space-between", marginTop:4 }}>
+      <span style={{ fontSize:7, color:"#9ca3af" }}>Performance vs <span style={{ color:"#9ae5ab" }}>Nifty 15</span></span>
+      <span style={{ fontSize:8, color:"#9ae5ab", fontWeight:700 }}>+18.4%</span>
+    </div>
+    <div style={{ display:"flex", gap:6, marginTop:7 }}>
+      {[["Top Gain","Axis BF","▲31%"],["Lowest","SBI Cons","▲9%"]].map(([l,n,v],i)=>(
+        <div key={i} style={{ flex:1, background:"rgba(154,229,171,0.06)", borderRadius:5, padding:"4px 6px" }}>
+          <div style={{ fontSize:6, color:"#6b7280" }}>{l}</div>
+          <div style={{ fontSize:7, color:"#e2e8f0", fontWeight:600 }}>{n}</div>
+          <div style={{ fontSize:8, color:"#9ae5ab" }}>{v}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const AIContent = () => (
+  <div style={{ padding:"10px 10px 8px", height:"100%", boxSizing:"border-box" }}>
+    <div style={{ fontSize:8, color:"#c6f6d5", fontWeight:700, letterSpacing:1, marginBottom:6 }}>AI RECOMMENDATIONS</div>
+    {[
+      ["Parag Parikh Flexi Cap","MULTI CAP","+24.3%"],
+      ["ICICI Pru Technology","SECTORAL","+31.1%"],
+      ["HDFC Balanced Adv","HYBRID","+15.7%"],
+      ["Nippon India Small","SMALL CAP","+19.2%"],
+    ].map(([name,tag,ret],i)=>(
+      <div key={i} style={{
+        display:"flex", justifyContent:"space-between", alignItems:"center",
+        padding:"4px 6px", marginBottom:3,
+        background:"rgba(154,229,171,0.05)",
+        borderRadius:5, borderLeft:`2px solid rgba(154,229,171,${0.25+i*0.12})`
+      }}>
+        <div>
+          <div style={{ fontSize:7.5, color:"#e2e8f0", fontWeight:600, maxWidth:115, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{name}</div>
+          <div style={{ fontSize:6, color:"#4b5563" }}>{tag}</div>
+        </div>
+        <div style={{ fontSize:9, color:"#9ae5ab", fontWeight:700 }}>{ret}</div>
+      </div>
+    ))}
+  </div>
+);
+
+/* ── Connector lines with animated current flow ── */
+function Connectors({ cx, cy, firing, centreGlow }: {
+  cx: number; cy: number;
+  firing: boolean;
+  centreGlow: boolean;
+}) {
+  const pts = [
+    { x: -220, y: -110 },
+    { x:  220, y: -110 },
+    { x: -220, y:  110 },
+    { x:  220, y:  110 },
+  ];
+  const W = 700, H = 440;
+  const ox = W/2 + cx, oy = H/2 + cy;
+
+  return (
+    <svg width={W} height={H} style={{ position:"absolute", top:0, left:0, pointerEvents:"none", zIndex:0 }}>
+      <defs>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="ballGlow">
+          <feGaussianBlur stdDeviation="5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="centreGlowF" x="-150%" y="-150%" width="400%" height="400%">
+          <feGaussianBlur stdDeviation="10" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        {pts.map((_,i) => (
+          <linearGradient key={i} id={`trail${i}`} gradientUnits="userSpaceOnUse"
+            x1={ox + pts[i].x} y1={oy + pts[i].y} x2={ox} y2={oy}>
+            <stop offset="0%"   stopColor="#9ae5ab" stopOpacity="0"/>
+            <stop offset="55%"  stopColor="#9ae5ab" stopOpacity="0.85"/>
+            <stop offset="100%" stopColor="#c6f6d5" stopOpacity="1"/>
+          </linearGradient>
+        ))}
+      </defs>
+
+      {/* static dashed base lines */}
+      {pts.map((p,i) => (
+        <line key={i}
+          x1={ox} y1={oy} x2={ox+p.x} y2={oy+p.y}
+          stroke="rgba(154,229,171,0.15)" strokeWidth={1} strokeDasharray="5 5"
+        />
+      ))}
+
+      {/* endpoint dots */}
+      {pts.map((p,i) => (
+        <circle key={i} cx={ox+p.x} cy={oy+p.y} r={3} fill="rgba(154,229,171,0.4)"/>
+      ))}
+
+      {/* animated glowing trails + orbs */}
+      {firing && pts.map((p,i) => {
+        const delay = `${i * 0.12}s`;
+        const dur   = "3s";
+        const x1 = ox + p.x, y1 = oy + p.y;
+        const x2 = ox,        y2 = oy;
+        return (
+          <g key={`trail-${i}`}>
+            {/* glowing trail — wider, softer, slow linear draw */}
+            <line
+              x1={x1} y1={y1} x2={x2} y2={y2}
+              stroke={`url(#trail${i})`} strokeWidth={3}
+              strokeDasharray="600" strokeDashoffset="600"
+              style={{ animation: `dashFlow 3s ${delay} linear forwards` }}
+            />
+            {/* soft outer halo on the trail */}
+            <line
+              x1={x1} y1={y1} x2={x2} y2={y2}
+              stroke={`url(#trail${i})`} strokeWidth={8} opacity={0.25}
+              strokeDasharray="600" strokeDashoffset="600"
+              style={{ animation: `dashFlow 3s ${delay} linear forwards` }}
+            />
+            {/* travelling orb */}
+            <circle r={6} fill="#a7f3d0" filter="url(#ballGlow)" opacity="0">
+              <animateMotion dur={dur} begin={delay} fill="freeze" calcMode="linear"
+                path={`M${x1},${y1} L${x2},${y2}`}/>
+              <animate attributeName="opacity" values="0;0.9;0.9;0"
+                keyTimes="0;0.05;0.92;1" dur={dur} begin={delay} fill="freeze"/>
+            </circle>
+            {/* soft halo orb */}
+            <circle r={12} fill="#9ae5ab" filter="url(#ballGlow)" opacity="0">
+              <animateMotion dur={dur} begin={delay} fill="freeze" calcMode="linear"
+                path={`M${x1},${y1} L${x2},${y2}`}/>
+              <animate attributeName="opacity" values="0;0.25;0.25;0"
+                keyTimes="0;0.05;0.92;1" dur={dur} begin={delay} fill="freeze"/>
+            </circle>
+          </g>
+        );
+      })}
+
+      {/* centre hub */}
+      {!centreGlow && (
+        <circle cx={ox} cy={oy} r={6} fill="rgba(154,229,171,0.65)" filter="url(#glow)"/>
+      )}
+      {centreGlow && (
+        <>
+          <circle cx={ox} cy={oy} r={28} fill="rgba(154,229,171,0.10)" filter="url(#centreGlowF)"
+            style={{ animation:"centreBurst 0.8s ease-out forwards" }}/>
+          <circle cx={ox} cy={oy} r={11} fill="rgba(198,246,213,0.95)" filter="url(#ballGlow)"
+            style={{ animation:"centreBurst 0.8s ease-out forwards" }}/>
+        </>
+      )}
+    </svg>
+  );
+}
+
+/* ═══════════════════════════════════════
+   MAIN COMPONENT
+═══════════════════════════════════════ */
+export default function ArthaBrain3D() {
+  const [mounted, setMounted] = useState(false);
+  const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  const [firing, setFiring] = useState(false);
+  const [centreGlow, setCentreGlow] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setTimeout(() => setMounted(true), 120);
+    const onMove = (e: MouseEvent) => {
+      if (!ref.current) return;
+      const r = ref.current.getBoundingClientRect();
+      setMouse({
+        x: (e.clientX - r.left - r.width  / 2) / (r.width  / 2),
+        y: (e.clientY - r.top  - r.height / 2) / (r.height / 2),
+      });
+    };
+    window.addEventListener("mousemove", onMove);
+
+    // Fire immediately after mount, then every 5s
+    const runSequence = () => {
+      setFiring(true);
+      setCentreGlow(false);
+      // orbs arrive at centre after ~3.1s (3s travel + small stagger)
+      setTimeout(() => {
+        setFiring(false);
+        setCentreGlow(true);
+      }, 3150);
+      // centre glow holds then fades
+      setTimeout(() => {
+        setCentreGlow(false);
+      }, 4400);
+    };
+
+    const t0 = setTimeout(runSequence, 800);
+    const interval = setInterval(runSequence, 7000);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      clearTimeout(t0);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // isometric-ish base rotation + gentle mouse parallax
+  const baseRX = 22;
+  const baseRY = -28;
+  const sceneTransform = `rotateX(${baseRX + mouse.y * -4}deg) rotateY(${baseRY + mouse.x * 5}deg)`;
+
+  // card layout: 4 corners of a diamond
+  const cards = [
+    { id:"tl", dx:-220, dy:-110, dz:0,  w:210, h:155, d:14, content:<PortfolioContent/> },
+    { id:"tr", dx: 220, dy:-110, dz:0,  w:210, h:155, d:14, content:<NiftyContent/>    },
+    { id:"bl", dx:-220, dy: 110, dz:0,  w:210, h:145, d:14, content:<MutualContent/>   },
+    { id:"br", dx: 220, dy: 110, dz:0,  w:210, h:175, d:14, content:<AIContent/>       },
+  ];
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        width:"100%", minHeight:"100vh",
+        background:"radial-gradient(ellipse at 35% 50%, #0f2e22 0%, #051009 45%, #020805 100%)",
+        display:"flex", alignItems:"center", justifyContent:"center",
+        fontFamily:"'DM Sans',sans-serif",
+        overflow:"hidden", position:"relative",
+      }}
+    >
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+
+      {/* grid bg */}
+      <div style={{ position:"absolute",inset:0,pointerEvents:"none",
+        backgroundImage:"linear-gradient(rgba(154,229,171,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(154,229,171,0.025) 1px,transparent 1px)",
+        backgroundSize:"44px 44px"
+      }}/>
+      {/* green ambient glow */}
+      <div style={{ position:"absolute",left:"50%",top:"50%",transform:"translate(-50%,-50%)",
+        width:600,height:400,
+        background:"radial-gradient(ellipse,rgba(154,229,171,0.10) 0%,transparent 70%)",
+        pointerEvents:"none"
+      }}/>
+
+      <div style={{
+        maxWidth:1260, width:"100%", padding:"0 40px",
+        display:"grid", gridTemplateColumns:"1fr 1.05fr", gap:60,
+        alignItems:"center"
+      }}>
+
+        {/* ── LEFT TEXT ── */}
+        <div style={{ zIndex:10 }}>
+          <div style={{ display:"inline-flex",alignItems:"center",gap:6,
+            background:"rgba(154,229,171,0.08)",border:"1px solid rgba(154,229,171,0.2)",
+            borderRadius:20,padding:"4px 12px",marginBottom:18
+          }}>
+            <div style={{ width:6,height:6,borderRadius:"50%",background:"#9ae5ab",boxShadow:"0 0 8px #9ae5ab" }}/>
+            <span style={{ fontSize:10,color:"#c6f6d5",letterSpacing:1.5,fontWeight:700 }}>AI-POWERED WEALTH</span>
           </div>
 
-          {/* Right: Floating 3D Composition */}
-          <div 
-            className="flex-1 relative h-[450px] w-full hidden lg:block z-50 cursor-crosshair ml-12"
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-          >
-            {/* Context wrapper for 3D */}
-            <div 
-              className="absolute inset-0 [transform-style:preserve-3d] scale-110 origin-center transition-transform duration-100 ease-out"
-              style={{
-                transform: `perspective(1000px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg) rotateZ(3deg)`
-              }}
-            >
-              
-              {/* Card 1: Live Signals (Top Left) */}
-              <div 
-                className="absolute top-[15%] left-[0%] w-64 bg-slate-900 border border-slate-700/50 rounded-xl p-4 shadow-2xl flex flex-col gap-3 transition-transform duration-300 backdrop-blur-md bg-opacity-95"
-                style={{ transform: 'translateZ(-20px)' }}
-              >
-                <div className="flex justify-between items-center opacity-80 border-b border-slate-800 pb-2">
-                  <span className="text-xs font-bold text-white tracking-widest uppercase">Live Signals</span>
-                </div>
-                <div className="bg-slate-800/50 rounded p-2.5 border border-slate-700/50">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-[10px] text-brand-green font-bold">BUY WATCH</span>
-                    <span className="text-[10px] text-slate-400">84% confidence</span>
-                  </div>
-                  <div className="text-xs text-white font-semibold italic">TATAMOTORS</div>
-                </div>
-                <div className="bg-slate-800/50 rounded p-2.5 border border-slate-700/50">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-[10px] text-brand-red font-bold">SELL WATCH</span>
-                    <span className="text-[10px] text-slate-400">92% confidence</span>
-                  </div>
-                  <div className="text-xs text-white font-semibold italic">HDFCBANK</div>
-                </div>
-              </div>
+          <h1 style={{
+            fontFamily:"'Syne',sans-serif", fontSize:"clamp(26px,3.2vw,46px)",
+            fontWeight:800, color:"#f0fdf4", lineHeight:1.15, margin:"0 0 18px",
+            opacity: mounted?1:0, transform: mounted?"translateY(0)":"translateY(22px)",
+            transition:"all .7s ease"
+          }}>
+            Master Your Wealth.<br/>
+            <span style={{ color:"#9ae5ab" }}>Our AI</span> is Your<br/>
+            Personalized<br/>Investment Brain.
+          </h1>
 
-              {/* Card 2: AI Chat (Top Right) */}
-              <div 
-                className="absolute top-[10%] right-[-5%] w-72 bg-slate-900 border border-slate-700/50 rounded-xl p-4 shadow-2xl flex flex-col gap-3 transition-transform duration-300 backdrop-blur-md bg-opacity-95"
-                style={{ transform: 'translateZ(10px)' }}
-              >
-                <div className="flex justify-between items-center opacity-80 border-b border-slate-800 pb-2">
-                  <span className="text-xs font-bold text-white tracking-widest uppercase">ET Radar AI</span>
-                </div>
-                <div className="flex flex-col gap-3">
-                  <div className="bg-slate-800 rounded-lg p-3 w-[85%] self-end border border-slate-700/50 mt-2">
-                     <div className="h-2 w-24 bg-slate-600 rounded"></div>
-                  </div>
-                  <div className="bg-slate-800/50 border border-brand-green/20 rounded-lg p-4 w-[90%] self-start relative">
-                     <div className="absolute -left-2 top-0 h-full w-4 bg-gradient-to-r from-brand-green/10 to-transparent blur-md"></div>
-                     <div className="text-[11px] text-brand-green font-semibold mb-2 shadow-brand-green">Analyzing context...</div>
-                     <div className="h-2 w-full bg-slate-700 rounded mb-1.5"></div>
-                     <div className="h-2 w-3/4 bg-slate-700 rounded"></div>
-                  </div>
-                </div>
-              </div>
+          <p style={{
+            fontSize:14,color:"#6b7280",lineHeight:1.75,maxWidth:410,margin:"0 0 30px",
+            opacity:mounted?1:0, transform:mounted?"translateY(0)":"translateY(16px)",
+            transition:"all .8s ease .15s"
+          }}>
+            Intelligent recommendations, real-time Nifty &amp; Sensex insights,
+            advanced portfolio optimization, and a detailed Mutual Fund analysis,
+            all at your fingertips.
+          </p>
 
-              {/* Card 3: Portfolio X-Ray (Bottom Center) */}
-              <div 
-                className="absolute bottom-[5%] left-[25%] w-60 bg-slate-900 border border-slate-700/50 rounded-xl p-4 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-3 transition-transform duration-300 backdrop-blur-md bg-opacity-95 group"
-                style={{ transform: 'translateZ(80px)' }}
-              >
-                <div className="flex justify-between items-center opacity-80 border-b border-slate-800 pb-2">
-                  <span className="text-xs font-bold text-white tracking-widest uppercase">Portfolio X-Ray</span>
+          <div style={{ display:"flex",gap:12,
+            opacity:mounted?1:0, transform:mounted?"translateY(0)":"translateY(12px)",
+            transition:"all .8s ease .3s"
+          }}>
+            {[
+              { label:"Start Free Trial", primary:true },
+              { label:"See Case Studies", primary:false },
+            ].map(({label,primary})=>(
+              <button key={label} style={{
+                padding:"11px 24px", borderRadius:30, cursor:"pointer",
+                fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:600,
+                background:"transparent",
+                border:`1.5px solid ${primary?"#9ae5ab":"rgba(255,255,255,0.15)"}`,
+                color: primary?"#9ae5ab":"#9ca3af",
+                boxShadow: primary?"0 0 20px rgba(154,229,171,0.15)":"none",
+                transition:"all .25s"
+              }}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── RIGHT 3D SCENE ── */}
+        <div style={{
+          position:"relative", width:700, height:440,
+          perspective:"1100px",
+          perspectiveOrigin:"50% 50%",
+        }}>
+          {/* connector lines drawn behind everything */}
+          <Connectors cx={0} cy={0} firing={firing} centreGlow={centreGlow}/>
+
+          {/* The 3D stage — all cards share one transform */}
+          <div style={{
+            position:"absolute", left:"50%", top:"50%",
+            transform:`translate(-50%,-50%)`,
+            transformStyle:"preserve-3d",
+            width:0, height:0,
+          }}>
+            <div style={{
+              transformStyle:"preserve-3d",
+              transform: sceneTransform,
+              transition:"transform 0.08s linear",
+            }}>
+
+              {/* ── 4 CUBOID CARDS ── */}
+              {cards.map((c, idx) => (
+                <div key={c.id} style={{
+                  position:"absolute",
+                  left: c.dx - c.w/2,
+                  top:  c.dy - c.h/2,
+                  transformStyle:"preserve-3d",
+                  opacity: mounted?1:0,
+                  transition:`opacity .6s ease ${idx*.12+.4}s`,
+                }}>
+                  <Cuboid w={c.w} h={c.h} d={c.d}
+                    faceColor="rgba(12,26,18,0.97)"
+                    topColor="rgba(20,52,32,0.97)"
+                    sideColor="rgba(5,15,9,0.97)"
+                    borderColor="rgba(154,229,171,0.2)"
+                  >
+                    {c.content}
+                  </Cuboid>
+                  {/* drop shadow underneath */}
+                  <div style={{
+                    position:"absolute",
+                    bottom:-16, left:"10%", width:"80%", height:14,
+                    background:"rgba(0,0,0,0.5)",
+                    borderRadius:"50%", filter:"blur(10px)",
+                    transform:"translateZ(-20px)",
+                    pointerEvents:"none",
+                  }}/>
                 </div>
-                <div className="flex items-center justify-center py-5">
-                  <div className="relative w-24 h-24 rounded-full border-[6px] border-slate-800 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform duration-500">
-                    <div className="absolute inset-0 rounded-full border-[6px] border-brand-green border-t-transparent border-r-transparent -rotate-12 drop-shadow-[0_0_8px_rgba(0,192,118,0.5)]"></div>
-                    <div className="flex flex-col items-center">
-                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-0.5">Overlap</span>
-                      <span className="text-xl font-bold text-white">14%</span>
+              ))}
+
+              {/* ── CENTER CUBOID (wide flat box, like the reference) ── */}
+              {/* w=160 h=70 d=60 → clearly wider than tall, deep sides visible */}
+              <div style={{
+                position:"absolute",
+                left:-80, top:-35,
+                transformStyle:"preserve-3d",
+                opacity: mounted?1:0,
+                transition:"opacity .5s ease .2s",
+              }}>
+                <Cuboid w={160} h={70} d={60}
+                  faceColor="rgba(10,32,22,0.98)"
+                  topColor="rgba(28,72,42,0.98)"
+                  sideColor="rgba(5,16,11,0.98)"
+                  borderColor="rgba(154,229,171,0.45)"
+                >
+                  {/* Front face content */}
+                  <div style={{
+                    width:"100%", height:"100%",
+                    display:"flex", flexDirection:"row",
+                    alignItems:"center", justifyContent:"center",
+                    gap:10,
+                  }}>
+                    {/* Glowing orb */}
+                    <div style={{
+                      width:38, height:38, borderRadius:"50%",
+                      background:"radial-gradient(circle at 35% 35%, #1e5a30, #061209)",
+                      border:`1.5px solid rgba(154,229,171,${centreGlow ? 1 : 0.6})`,
+                      boxShadow: centreGlow
+                        ? "0 0 50px rgba(154,229,171,0.95), 0 0 100px rgba(154,229,171,0.5), inset 0 0 20px rgba(154,229,171,0.4)"
+                        : "0 0 22px rgba(154,229,171,0.45), inset 0 0 12px rgba(154,229,171,0.15)",
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      fontSize:18, color: centreGlow ? "#ffffff" : "#9ae5ab", fontWeight:800,
+                      flexShrink:0,
+                      transition:"box-shadow 0.3s ease, color 0.3s ease, border-color 0.3s ease",
+                      animation:"cubePulse 3s ease-in-out infinite",
+                    }}>₹</div>
+                    {/* Label */}
+                    <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
+                      <div style={{ fontSize:13, color:"#c6f6d5", fontWeight:800, letterSpacing:1, lineHeight:1 }}>Artha</div>
+                      <div style={{ fontSize:13, color:"#c6f6d5", fontWeight:800, letterSpacing:1, lineHeight:1 }}>Brain</div>
                     </div>
                   </div>
-                </div>
-                <button className="h-9 w-full bg-slate-800/80 hover:bg-slate-700 border border-slate-700 rounded flex items-center justify-center transition-colors">
-                    <span className="text-[11px] text-brand-green font-bold">Generate AI Strategy</span>
-                </button>
+                </Cuboid>
+
+                {/* glow halo under the cuboid */}
+                <div style={{
+                  position:"absolute",
+                  bottom:-20, left:"15%", width:"70%", height:16,
+                  background:"rgba(154,229,171,0.18)",
+                  borderRadius:"50%", filter:"blur(12px)",
+                  transform:"translateZ(-30px)",
+                  pointerEvents:"none",
+                }}/>
               </div>
 
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* Constraints Line */}
-      <div className="w-full h-px bg-gradient-to-r from-transparent via-brand-border to-transparent mb-20 hidden md:block"></div>
-
-      {/* Features Row */}
-      <section className="pb-32">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
-
-          {/* Feature 1 */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-6 h-12">
-              <Activity className="w-10 h-10 text-brand-muted" />
-              <Gauge className="w-10 h-10 text-brand-green" />
-            </div>
-            <h3 className="text-xl font-bold text-brand-text">AI-Driven Live Signals</h3>
-            <p className="text-sm text-brand-muted leading-relaxed max-w-sm">
-              ET Radar has improved your signal signals, and for hrasien trading in <span className="text-brand-green font-semibold">41% grional</span> confidence.
-            </p>
-          </div>
-
-          {/* Feature 2 */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-start gap-2 mb-6 relative w-20 h-12">
-              <Upload className="absolute left-0 bottom-0 w-8 h-8 text-brand-muted" />
-              <div className="absolute right-0 top-0 bg-brand-bg rounded p-1 shadow-sm border border-brand-border">
-                <FileSearch className="w-8 h-8 text-brand-green" />
-              </div>
-            </div>
-            <h3 className="text-xl font-bold text-brand-text">Instant Portfolio X-Ray</h3>
-            <p className="text-sm text-brand-muted leading-relaxed max-w-sm">
-              Upload your ax is in depth Portfolio X-Ray all the yime conosrest and your analysis.
-            </p>
-          </div>
-
-          {/* Feature 3 */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-6 relative w-24 h-12">
-              <MessageSquare className="absolute left-0 top-2 w-8 h-8 text-brand-muted" />
-              <div className="absolute left-6 bottom-0 bg-brand-bg rounded-full p-0.5 shadow-sm">
-                <MessageSquare className="w-6 h-6 text-brand-green" style={{ transform: "scaleX(-1)" }} />
-              </div>
-              <Lightbulb className="absolute right-0 top-0 w-10 h-10 text-brand-text" />
-            </div>
-            <h3 className="text-xl font-bold text-brand-text">Context-Aware AI Chat</h3>
-            <p className="text-sm text-brand-muted leading-relaxed max-w-sm">
-              ET Radar has assessed comtnting enaryzing a context-Aware context-aware AI oiChat.
-            </p>
-          </div>
-
-        </div>
-      </section>
+      <style>{`
+        @keyframes cubePulse {
+          0%,100% { box-shadow: 0 0 18px rgba(154,229,171,0.3); }
+          50%      { box-shadow: 0 0 32px rgba(154,229,171,0.55), 0 0 60px rgba(154,229,171,0.15); }
+        }
+        @keyframes dashFlow {
+          from { stroke-dashoffset: 600; }
+          to   { stroke-dashoffset: 0; }
+        }
+        @keyframes centreBurst {
+          0%   { opacity: 1; transform: scale(1); }
+          50%  { opacity: 0.85; transform: scale(1.6); }
+          100% { opacity: 0; transform: scale(2.4); }
+        }
+      `}</style>
     </div>
-  )
+  );
 }

@@ -1,15 +1,14 @@
 import type { Metadata } from 'next'
-import { GeistSans } from 'geist/font/sans'
+import { Inter } from 'next/font/google'
 import './globals.css'
-import { Toaster } from '@/components/ui/toaster'
 import Navbar from '@/components/Navbar'
-import DemoModeBanner from '@/components/DemoModeBanner'
+import { ThemeProvider } from '@/components/ThemeProvider'
 
-import { ThemeProvider } from "@/components/ThemeProvider"
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'ET Radar',
-  description: 'Stock Intelligence Platform',
+  description: 'AI-Powered Stock Intelligence',
 }
 
 export default function RootLayout({
@@ -18,15 +17,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={GeistSans.variable} suppressHydrationWarning>
-      <body className="bg-brand-bg text-brand-text min-h-screen flex flex-col relative transition-colors duration-300">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <DemoModeBanner />
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} min-h-screen text-slate-100 dark:bg-[#051009] light:bg-gray-50 dark:text-[#f0fdf4] light:text-[#1f2937] transition-colors`}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <Navbar />
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1 flex flex-col">
-            {children}
-          </main>
-          <Toaster />
+          {children}
         </ThemeProvider>
       </body>
     </html>
