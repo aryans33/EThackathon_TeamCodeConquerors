@@ -18,7 +18,24 @@ async def get_redis():
     try:
         yield r
     finally:
-        await r.aclose()
+        try:
+            await r.aclose()
+        except Exception:
+            pass
+
+
+async def cache_get(r, key: str):
+    try:
+        return await r.get(key)
+    except Exception:
+        return None
+
+
+async def cache_setex(r, key: str, ttl: int, payload: str):
+    try:
+        await r.setex(key, ttl, payload)
+    except Exception:
+        pass
 
 
 @router.get("/chart-patterns")
@@ -35,12 +52,12 @@ async def get_chart_patterns(
     """
     sym = symbol.upper()
     cache_key = f"patterns:{sym}"
-    cached = await r.get(cache_key)
+    cached = await cache_get(r, cache_key)
     if cached:
         return json.loads(cached)
 
     results = await analyse_stock_patterns(sym, db)
-    await r.setex(cache_key, 21600, json.dumps(results))  # 6 hour cache
+    await cache_setex(r, cache_key, 21600, json.dumps(results))  # 6 hour cache
     return results
 
 
@@ -56,7 +73,7 @@ async def get_all_patterns_today(
     Response includes stock name (not just symbol).
     """
     cache_key = "patterns:all"
-    cached = await r.get(cache_key)
+    cached = await cache_get(r, cache_key)
     if cached:
         return json.loads(cached)
 
@@ -78,5 +95,5 @@ async def get_all_patterns_today(
             })
         await asyncio.sleep(0.2)
 
-    await r.setex(cache_key, 21600, json.dumps(results))  # 6 hour cache
+    await cache_setex(r, cache_key, 21600, json.dumps(results))  # 6 hour cache
     return results

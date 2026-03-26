@@ -18,9 +18,12 @@ if config.config_file_name is not None:
 
 # Import all models so that Base.metadata is populated
 from app.database import Base  # noqa: E402
+from app.config import settings  # noqa: E402
 from app.models.tables import (  # noqa: E402, F401
     Stock, OHLCV, Filing, BulkDeal, Signal, Alert, Portfolio, ChatMessage
 )
+
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("%", "%%"))
 
 target_metadata = Base.metadata
 

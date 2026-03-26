@@ -336,7 +336,7 @@ function Connectors({ cx, cy, firing, centreGlow }: {
 /* ═══════════════════════════════════════
    MAIN COMPONENT
 ═══════════════════════════════════════ */
-export default function ArthaBrain3D() {
+export default function EtRadarBrain3D() {
   const [mounted, setMounted] = useState(false);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
   const [firing, setFiring] = useState(false);
@@ -567,8 +567,8 @@ export default function ArthaBrain3D() {
                     }}>₹</div>
                     {/* Label */}
                     <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
-                      <div style={{ fontSize:13, color:"#c6f6d5", fontWeight:800, letterSpacing:1, lineHeight:1 }}>Artha</div>
-                      <div style={{ fontSize:13, color:"#c6f6d5", fontWeight:800, letterSpacing:1, lineHeight:1 }}>Brain</div>
+                      <div style={{ fontSize:13, color:"#c6f6d5", fontWeight:800, letterSpacing:1, lineHeight:1 }}>ET</div>
+                      <div style={{ fontSize:13, color:"#c6f6d5", fontWeight:800, letterSpacing:1, lineHeight:1 }}>Radar</div>
                     </div>
                   </div>
                 </Cuboid>

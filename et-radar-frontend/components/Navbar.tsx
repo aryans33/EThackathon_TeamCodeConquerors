@@ -35,10 +35,10 @@ export default function Navbar() {
     <nav className="dark:bg-[#0b1b16] light:bg-white dark:border-white/5 light:border-gray-200 border-b flex items-center justify-between px-8 py-5 transition-colors">
       <Link href="/" className="flex items-center space-x-2">
         <div className="flex items-center dark:text-[#9ae5ab] light:text-green-600 font-bold text-2xl relative">
-          <span className="text-[32px] tracking-tighter">A</span>
-          <span className="absolute left-[13px] top-[5px] text-[13px] -rotate-12">₹</span>
+          <span className="text-[32px] tracking-tighter">E</span>
+          <span className="absolute left-[13px] top-[5px] text-[13px] -rotate-12">T</span>
         </div>
-        <span className="dark:text-[#e2e8f0] light:text-[#1f2937] font-bold text-[19px] tracking-wide ml-2">ARTHA.AI</span>
+        <span className="dark:text-[#e2e8f0] light:text-[#1f2937] font-bold text-[19px] tracking-wide ml-2">ET Radar</span>
       </Link>
       <div className="hidden md:flex flex-1 justify-center space-x-8">
         <NavLink href="/dashboard" currentPath={pathname}>Dashboard</NavLink>

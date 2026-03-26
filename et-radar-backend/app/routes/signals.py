@@ -48,7 +48,38 @@ async def get_redis():
     try:
         yield r
     finally:
-        await r.aclose()
+        try:
+            await r.aclose()
+        except Exception:
+            pass
+
+
+async def cache_get(r, key: str):
+    try:
+        return await r.get(key)
+    except Exception:
+        return None
+
+
+async def cache_setex(r, key: str, ttl: int, payload: str):
+    try:
+        await r.setex(key, ttl, payload)
+    except Exception:
+        pass
+
+
+async def cache_delete(r, key: str):
+    try:
+        await r.delete(key)
+    except Exception:
+        pass
+
+
+async def cache_keys(r, pattern: str):
+    try:
+        return await r.keys(pattern)
+    except Exception:
+        return []
 
 
 def signal_to_dict(s: Signal) -> dict:
@@ -85,7 +116,7 @@ async def get_opportunity_radar(
     Supports pagination via page + limit.
     """
     cache_key = f"signals:radar:{limit}:{page}:{action_hint or 'all'}"
-    cached = await r.get(cache_key)
+    cached = await cache_get(r, cache_key)
     if cached:
         return json.loads(cached)
 
@@ -118,7 +149,7 @@ async def get_opportunity_radar(
         "page": page,
         "pages": pages,
     }
-    await r.setex(cache_key, 300, json.dumps(response))   # 5-min cache
+    await cache_setex(r, cache_key, 300, json.dumps(response))   # 5-min cache
     return response
 
 
@@ -187,11 +218,11 @@ async def seed_demo_signals(db: AsyncSession = Depends(get_db), r=Depends(get_re
             await db.flush()
 
         db.add(Signal(stock_id=stock.id, **demo_signals[i]))
-        await r.delete(f"patterns:{stock_data['symbol']}")
+        await cache_delete(r, f"patterns:{stock_data['symbol']}")
 
     # Invalidate radar cache
-    for key in await r.keys("signals:radar:*"):
-        await r.delete(key)
-    await r.delete("patterns:all")
+    for key in await cache_keys(r, "signals:radar:*"):
+        await cache_delete(r, key)
+    await cache_delete(r, "patterns:all")
     await db.commit()
     return {"message": "Demo signals seeded successfully", "count": len(demo_signals)}

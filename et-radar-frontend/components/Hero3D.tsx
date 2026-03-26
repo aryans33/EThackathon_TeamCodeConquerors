@@ -91,7 +91,7 @@ function Scene() {
           >
             <span className="text-3xl font-bold" style={{ textShadow: '0 0 10px rgba(154,229,171,0.5)' }}>₹</span>
             <div className="flex w-full justify-between items-center px-3 mt-1 text-[10px] text-[#9ae5ab] font-mono tracking-widest">
-               <span>Artha</span>
+              <span>ET Radar</span>
                <div className="w-1 h-1 rounded-full bg-[#9ae5ab]" />
                <span>Brain</span>
             </div>
