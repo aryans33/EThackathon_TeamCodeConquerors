@@ -6,6 +6,7 @@ from typing import Optional, List
 from sqlalchemy import (  # type: ignore[import]
     String,
     Text,
+    JSON,
     Float,
     Integer,
     BigInteger,
@@ -40,6 +41,9 @@ class Stock(Base):
     )
     filings: Mapped[List["Filing"]] = relationship(
         "Filing", back_populates="stock"
+    )
+    bse_filings: Mapped[List["BSEFiling"]] = relationship(
+        "BSEFiling", back_populates="stock"
     )
     bulk_deals: Mapped[List["BulkDeal"]] = relationship(
         "BulkDeal", back_populates="stock"
@@ -144,6 +148,7 @@ class Signal(Base):
     # Relationships
     stock: Mapped["Stock"] = relationship("Stock", back_populates="signals")
     filing: Mapped[Optional["Filing"]] = relationship("Filing", back_populates="signals")
+    bse_filings: Mapped[List["BSEFiling"]] = relationship("BSEFiling", back_populates="signal")
     alerts: Mapped[List["Alert"]] = relationship(
         "Alert", back_populates="signal", cascade="all, delete-orphan"
     )
@@ -185,6 +190,50 @@ class Portfolio(Base):
 
     def __repr__(self) -> str:
         return f"<Portfolio(id={self.id}, session='{self.session_id}')>"
+
+
+class BSEFiling(Base):
+    __tablename__ = "bse_filings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    stock_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("stocks.id"), nullable=True
+    )
+    category: Mapped[str] = mapped_column(String(100), nullable=False)
+    raw_text: Mapped[str] = mapped_column(Text, nullable=False)
+    source_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    published_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    signal_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("signals.id"), nullable=True
+    )
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    stock: Mapped[Optional["Stock"]] = relationship("Stock", back_populates="bse_filings")
+    signal: Mapped[Optional["Signal"]] = relationship("Signal", back_populates="bse_filings")
+
+    def __repr__(self) -> str:
+        return f"<BSEFiling(id={self.id}, category='{self.category}')>"
+
+
+class PortfolioReport(Base):
+    __tablename__ = "portfolio_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    raw_result: Mapped[dict] = mapped_column(JSON, nullable=False)
+    total_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    xirr: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    fund_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    def __repr__(self) -> str:
+        return f"<PortfolioReport(id={self.id}, session_id='{self.session_id}')>"
 
 
 class ChatMessage(Base):

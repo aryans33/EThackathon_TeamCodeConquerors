@@ -477,12 +477,18 @@ function WatchlistSection() {
 export default function EtRadarBrain3D() {
   const [mounted, setMounted] = useState(false);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  const [isNarrow, setIsNarrow] = useState(false);
   const [firing, setFiring] = useState(false);
   const [centreGlow, setCentreGlow] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 120);
+    const handleResize = () => {
+      setIsNarrow(window.innerWidth < 1100);
+    };
+    handleResize();
+
     const onMove = (e: MouseEvent) => {
       if (!ref.current) return;
       const r = ref.current.getBoundingClientRect();
@@ -492,6 +498,7 @@ export default function EtRadarBrain3D() {
       });
     };
     window.addEventListener("mousemove", onMove);
+    window.addEventListener("resize", handleResize);
 
     // Fire immediately after mount, then every 5s
     const runSequence = () => {
@@ -512,6 +519,7 @@ export default function EtRadarBrain3D() {
     const interval = setInterval(runSequence, 7000);
     return () => {
       window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("resize", handleResize);
       clearTimeout(t0);
       clearInterval(interval);
     };
@@ -521,6 +529,8 @@ export default function EtRadarBrain3D() {
   const baseRX = 22;
   const baseRY = -28;
   const sceneTransform = `rotateX(${baseRX + mouse.y * -4}deg) rotateY(${baseRY + mouse.x * 5}deg)`;
+  const sceneWidth = isNarrow ? 560 : 700;
+  const sceneHeight = isNarrow ? 360 : 440;
 
   // card layout: 4 corners of a diamond
   const cards = [
@@ -533,10 +543,11 @@ export default function EtRadarBrain3D() {
   return (
     <div
       ref={ref}
+      className="scene-3d"
       style={{
         width:"100%", minHeight:"100vh",
         background:"radial-gradient(ellipse at 35% 50%, #0f2e22 0%, #051009 45%, #020805 100%)",
-        display:"flex", alignItems:"center", justifyContent:"center",
+        display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-start",
         fontFamily:"'DM Sans',sans-serif",
         overflow:"hidden", position:"relative",
       }}
@@ -556,8 +567,8 @@ export default function EtRadarBrain3D() {
       }}/>
 
       <div style={{
-        maxWidth:1260, width:"100%", padding:"0 40px",
-        display:"grid", gridTemplateColumns:"1fr 1.05fr", gap:60,
+        maxWidth:1260, width:"100%", padding:isNarrow ? "28px 16px 0" : "20px 40px 0",
+        display:"grid", gridTemplateColumns:isNarrow ? "1fr" : "1fr 1.05fr", gap:isNarrow ? 32 : 60,
         alignItems:"center"
       }}>
 
@@ -617,7 +628,8 @@ export default function EtRadarBrain3D() {
 
         {/* ── RIGHT 3D SCENE ── */}
         <div style={{
-          position:"relative", width:700, height:440,
+          position:"relative", width:sceneWidth, height:sceneHeight,
+          maxWidth:"100%",
           perspective:"1100px",
           perspectiveOrigin:"50% 50%",
         }}>
@@ -729,10 +741,10 @@ export default function EtRadarBrain3D() {
 
       {/* ── WATCHLIST SECTION ── */}
       <div style={{
-        marginTop: 60,
+        marginTop: isNarrow ? 30 : 60,
         maxWidth: 1260,
         width: "100%",
-        padding: "0 40px",
+        padding: isNarrow ? "0 16px 28px" : "0 40px 48px",
       }}>
         <h2 style={{
           fontSize: 28,

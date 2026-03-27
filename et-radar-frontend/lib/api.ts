@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getToken } from '@/lib/auth'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
 
@@ -7,6 +8,18 @@ const api = axios.create({
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' }
 })
+
+api.interceptors.request.use(
+  config => {
+    const token = getToken()
+    if (token) {
+      config.headers = config.headers ?? {}
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  err => Promise.reject(err)
+)
 
 // Add response interceptor for error handling
 api.interceptors.response.use(

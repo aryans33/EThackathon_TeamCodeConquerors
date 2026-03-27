@@ -15,6 +15,15 @@
   }
 
   :root {
+    /* Light mode */
+    --bg-page: #f6f8fa;
+    --bg-card: #ffffff;
+    --bg-hover: #f0f6ff;
+    --border: #d0d7de;
+    --text-primary: #1f2328;
+    --text-secondary: #57606a;
+    --text-muted: #8c959f;
+
     --brand-bg: #f8fafc;
     --brand-surface: #ffffff;
     --brand-card: #f1f5f9;
@@ -60,6 +69,14 @@
   }
 
   .dark {
+    --bg-page: #0d1117;
+    --bg-card: #161b22;
+    --bg-hover: #1c2128;
+    --border: #30363d;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #484f58;
+
     --brand-bg: #0a0e1a;
     --brand-surface: #111827;
     --brand-card: #1a2235;
@@ -117,9 +134,10 @@
 }
 
 /* ============================= */
-/* ===== 3D GLOBAL FIX ===== */
+/* ===== 3D SCOPED FIX ===== */
 /* ============================= */
-* {
+.scene-3d,
+.scene-3d * {
   transform-style: preserve-3d;
   backface-visibility: hidden;
 }

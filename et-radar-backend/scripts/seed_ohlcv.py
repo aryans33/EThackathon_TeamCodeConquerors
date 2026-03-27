@@ -4,6 +4,7 @@ import os
 import datetime
 import random
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 # Add project root to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -87,7 +88,7 @@ def generate_ohlcv(start_price: float, dates: list[datetime.date]) -> list[dict]
 
 
 async def seed_ohlcv_for_stock(session, stock: Stock) -> int:
-    """Seed OHLCV data for a single stock. Returns count of inserted rows."""
+    """Seed OHLCV data for a single stock using conflict-safe upsert semantics."""
     symbol = stock.symbol
     start_price = STOCK_PRICES.get(symbol, 1000)  # Default if not found
     
@@ -98,34 +99,27 @@ async def seed_ohlcv_for_stock(session, stock: Stock) -> int:
     # Generate OHLCV data
     ohlcv_records = generate_ohlcv(start_price, dates)
     
-    # Get existing dates for this stock in one query
-    stmt = select(OHLCV.date).where(OHLCV.stock_id == stock.id)
-    result = await session.execute(stmt)
-    existing_dates = {row[0] for row in result.fetchall()}
-    
-    # Check existing records and skip if date already exists
-    inserted_count = 0
-    for record in ohlcv_records:
-        if record["date"] not in existing_dates:
-            # Insert new record
-            ohlcv = OHLCV(
-                stock_id=stock.id,
-                date=record["date"],
-                open=record["open"],
-                high=record["high"],
-                low=record["low"],
-                close=record["close"],
-                volume=record["volume"],
-            )
-            session.add(ohlcv)
-            inserted_count += 1
-    
-    # Commit all inserts for this stock
-    if inserted_count > 0:
-        await session.commit()
-    print(f"{symbol}: {inserted_count} rows inserted")
-    
-    return inserted_count
+    rows = [
+        {
+            "stock_id": stock.id,
+            "date": record["date"],
+            "open": record["open"],
+            "high": record["high"],
+            "low": record["low"],
+            "close": record["close"],
+            "volume": record["volume"],
+        }
+        for record in ohlcv_records
+    ]
+
+    stmt = pg_insert(OHLCV).values(rows)
+    stmt = stmt.on_conflict_do_nothing(index_elements=["stock_id", "date"])
+
+    await session.execute(stmt)
+    await session.commit()
+
+    print(f"Inserted/skipped {len(rows)} OHLCV rows for {symbol}")
+    return len(rows)
 
 
 async def main():
@@ -153,7 +147,9 @@ async def main():
                 rows = await seed_ohlcv_for_stock(session, stock)
                 total_rows += rows
             except Exception as e:
-                print(f"{symbol}: Error - {e}")
+                await session.rollback()
+                print(f"Seed failed for {symbol}: {e}")
+                raise SystemExit(1)
     
     print(f"\n✅ Done: {len(stock_list)} stocks, ~{total_rows} rows total")
 

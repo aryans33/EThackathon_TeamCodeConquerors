@@ -1,7 +1,7 @@
 """Stocks, OHLCV, filings, and bulk deals endpoints."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func, and_
 from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
@@ -66,7 +66,7 @@ class StockPriceOut(BaseModel):
     prev_close: Optional[float] = None
     change: Optional[float] = None
     change_pct: Optional[float] = None
-    date: Optional[str] = None
+    latest_date: Optional[str] = None
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -176,64 +176,64 @@ async def get_bulk_deals(
 
 @router.get("/stocks/prices", response_model=List[StockPriceOut])
 async def get_stock_prices(db: AsyncSession = Depends(get_db)):
-    """GET /api/stocks/prices — latest close price and change for all stocks."""
-    # Get all stocks with joinedload for OHLCV
-    result = await db.execute(
-        select(Stock).options(joinedload(Stock.ohlcv_records))
+    """GET /api/stocks/prices — latest close and day change for all stocks."""
+    latest_with_prev = (
+        select(
+            OHLCV.stock_id.label("stock_id"),
+            OHLCV.date.label("latest_date"),
+            OHLCV.close.label("latest_close"),
+            func.lag(OHLCV.close).over(
+                partition_by=OHLCV.stock_id,
+                order_by=OHLCV.date,
+            ).label("prev_close"),
+            func.row_number().over(
+                partition_by=OHLCV.stock_id,
+                order_by=OHLCV.date.desc(),
+            ).label("rn"),
+        )
+        .subquery()
     )
-    stocks = result.scalars().unique().all()
 
-    prices = []
-    for stock in stocks:
-        # Sort OHLCV records by date descending
-        ohlcv_sorted = sorted(stock.ohlcv_records, key=lambda x: x.date, reverse=True)
-        
-        if not ohlcv_sorted:
-            # No OHLCV data
-            prices.append(
-                StockPriceOut(
-                    symbol=stock.symbol,
-                    name=stock.name,
-                    sector=stock.sector,
-                    latest_close=None,
-                    prev_close=None,
-                    change=None,
-                    change_pct=None,
-                    date=None
-                )
-            )
-        elif len(ohlcv_sorted) == 1:
-            # Only 1 row: no previous close
-            ohlcv = ohlcv_sorted[0]
-            prices.append(
-                StockPriceOut(
-                    symbol=stock.symbol,
-                    name=stock.name,
-                    sector=stock.sector,
-                    latest_close=ohlcv.close,
-                    prev_close=None,
-                    change=0.0,
-                    change_pct=0.0,
-                    date=ohlcv.date.strftime("%Y-%m-%d")
-                )
-            )
-        else:
-            # 2 or more rows
-            latest = ohlcv_sorted[0]
-            prev = ohlcv_sorted[1]
-            change = latest.close - prev.close
-            change_pct = (change / prev.close) * 100 if prev.close != 0 else 0.0
-            prices.append(
-                StockPriceOut(
-                    symbol=stock.symbol,
-                    name=stock.name,
-                    sector=stock.sector,
-                    latest_close=round(latest.close, 2),
-                    prev_close=round(prev.close, 2),
-                    change=round(change, 2),
-                    change_pct=round(change_pct, 2),
-                    date=latest.date.strftime("%Y-%m-%d")
-                )
-            )
+    result = await db.execute(
+        select(
+            Stock.symbol,
+            Stock.name,
+            Stock.sector,
+            latest_with_prev.c.latest_close,
+            latest_with_prev.c.prev_close,
+            latest_with_prev.c.latest_date,
+        )
+        .outerjoin(
+            latest_with_prev,
+            and_(
+                latest_with_prev.c.stock_id == Stock.id,
+                latest_with_prev.c.rn == 1,
+            ),
+        )
+        .order_by(Stock.symbol.asc())
+    )
 
-    return prices
+    payload: List[StockPriceOut] = []
+    for row in result.all():
+        latest_close = row.latest_close
+        prev_close = row.prev_close
+        change = None
+        change_pct = None
+        if latest_close is not None and prev_close is not None:
+            change = round(float(latest_close - prev_close), 2)
+            change_pct = round((change / prev_close) * 100, 2) if prev_close != 0 else 0.0
+
+        payload.append(
+            StockPriceOut(
+                symbol=row.symbol,
+                name=row.name,
+                sector=row.sector,
+                latest_close=round(float(latest_close), 2) if latest_close is not None else None,
+                prev_close=round(float(prev_close), 2) if prev_close is not None else None,
+                change=change,
+                change_pct=change_pct,
+                latest_date=row.latest_date.strftime("%Y-%m-%d") if row.latest_date else None,
+            )
+        )
+
+    return payload

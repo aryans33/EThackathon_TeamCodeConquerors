@@ -3,15 +3,12 @@
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends, Request
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func, select
-
 from app.config import settings
-from app.database import get_db, engine, Base
-from app.routes import stocks, signals, patterns, portfolio, chat
+from app.database import engine, Base
+from app.routes import stocks, signals, patterns, portfolio, chat, status, filings, demo
 
 
 @asynccontextmanager
@@ -75,29 +72,10 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-# ── Health & Status endpoints ─────────────────────────────────────────────────
+# ── Health endpoint ───────────────────────────────────────────────────────────
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-
-
-@app.get("/api/status")
-async def get_system_status(db: AsyncSession = Depends(get_db)):
-    from app.models.tables import Signal, Stock
-
-    stock_count = await db.scalar(select(func.count(Stock.id)))
-    signal_count = await db.scalar(select(func.count(Signal.id)))
-    latest_signal_result = await db.execute(
-        select(Signal.created_at).order_by(Signal.created_at.desc()).limit(1)
-    )
-    latest_signal = latest_signal_result.scalar_one_or_none()
-
-    return {
-        "status": "ok",
-        "stocks_tracked": stock_count or 0,
-        "signals_generated": signal_count or 0,
-        "latest_signal_at": latest_signal.isoformat() if latest_signal else None,
-    }
 
 
 # ── Admin endpoints ───────────────────────────────────────────────────────────
@@ -124,3 +102,6 @@ app.include_router(signals.router)
 app.include_router(patterns.router)
 app.include_router(portfolio.router)
 app.include_router(chat.router)
+app.include_router(status.router)
+app.include_router(filings.router)
+app.include_router(demo.router)
