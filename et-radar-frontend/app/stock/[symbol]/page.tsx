@@ -88,6 +88,9 @@ export default function StockDetail() {
     const volumeSeries = chart.addHistogramSeries({
       priceFormat: { type: 'volume' },
       priceScaleId: '',
+    })
+
+    chart.priceScale('').applyOptions({
       scaleMargins: { top: 0.85, bottom: 0 },
     })
 
@@ -194,34 +197,43 @@ export default function StockDetail() {
                   <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-5">
                     <div className="flex justify-between items-start">
                       <h4 className="font-bold text-lg text-slate-200">{formatPattern(p.pattern_name)}</h4>
-                      <div className="flex items-center space-x-2 bg-slate-800 px-2 py-1 rounded-full text-xs">
-                        <span className={`w-2 h-2 rounded-full ${p.detected_today ? 'bg-green-500' : 'bg-slate-500'}`} />
+                      <div className="flex items-center space-x-1.5 bg-slate-800 px-2.5 py-1 rounded-full text-xs">
                         <span className={p.detected_today ? 'text-green-400' : 'text-slate-400'}>
-                          {p.detected_today ? 'Detected today' : 'Not active'}
+                          {p.detected_today ? '● Active Today' : '○ Not Active'}
                         </span>
                       </div>
                     </div>
                     <p className="text-sm text-slate-400 mt-3 leading-relaxed">
-                      {p.explanation}
+                      {!p.explanation || p.explanation.trim() === ''
+                        ? 'Pattern analysis will be available once more price data is collected.'
+                        : p.explanation}
                     </p>
-                    <div className="grid grid-cols-3 gap-3 mt-5">
-                      <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                        <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Occurrences</div>
-                        <div className="font-medium text-slate-300">{p.backtest.occurrences}x in 3Y</div>
+                    {p.backtest.occurrences === 0 ? (
+                      <div className="mt-5 bg-slate-800/30 rounded-lg p-3 text-center">
+                        <div className="text-xs text-slate-500 uppercase tracking-wider">
+                          Back-test data not yet available
+                        </div>
                       </div>
-                      <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                        <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Success</div>
-                        <div className={`font-medium ${
-                          p.backtest.success_rate * 100 > 60 ? 'text-green-400' : p.backtest.success_rate * 100 >= 40 ? 'text-amber-400' : 'text-red-400'
-                        }`}>{(p.backtest.success_rate * 100).toFixed(0)}%</div>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-3 mt-5">
+                        <div className="bg-slate-800/50 rounded-lg p-3 text-center">
+                          <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Occurrences</div>
+                          <div className="font-medium text-slate-300">{p.backtest.occurrences}x in 3Y</div>
+                        </div>
+                        <div className="bg-slate-800/50 rounded-lg p-3 text-center">
+                          <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Success</div>
+                          <div className={`font-medium ${
+                            p.backtest.success_rate * 100 > 60 ? 'text-green-400' : p.backtest.success_rate * 100 >= 40 ? 'text-amber-400' : 'text-red-400'
+                          }`}>{(p.backtest.success_rate * 100).toFixed(0)}%</div>
+                        </div>
+                        <div className="bg-slate-800/50 rounded-lg p-3 text-center">
+                          <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Avg Return</div>
+                          <div className={`font-medium ${
+                            p.backtest.avg_return_pct > 0 ? 'text-green-400' : 'text-red-400'
+                          }`}>{p.backtest.avg_return_pct > 0 ? '+' : ''}{p.backtest.avg_return_pct.toFixed(2)}%</div>
+                        </div>
                       </div>
-                      <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                        <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Avg Return</div>
-                        <div className={`font-medium ${
-                          p.backtest.avg_return_pct > 0 ? 'text-green-400' : 'text-red-400'
-                        }`}>{p.backtest.avg_return_pct > 0 ? '+' : ''}{p.backtest.avg_return_pct.toFixed(2)}%</div>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>

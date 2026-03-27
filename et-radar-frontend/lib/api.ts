@@ -83,6 +83,16 @@ export async function uploadPortfolio(file: File, sessionId: string) {
   return r.data as PortfolioResult
 }
 
+export async function getPortfolioHistory(sessionId: string) {
+  const r = await api.get('/portfolio/history', { params: { session_id: sessionId } })
+  return r.data as PortfolioHistoryItem[]
+}
+
+export async function getPortfolioById(portfolioId: number | string) {
+  const r = await api.get(`/portfolio/${portfolioId}`)
+  return r.data as { id: number; session_id: string; data: PortfolioResult; total_value: number; xirr: number | null; created_at: string }
+}
+
 // Read app/routes/chat.py — this is a streaming endpoint
 export async function streamChat(
   message: string,
@@ -195,4 +205,11 @@ export interface PortfolioResult {
   }[]
   expense_drag: number
   rebalancing_suggestion: string
+}
+
+export interface PortfolioHistoryItem {
+  id: number
+  created_at: string
+  total_value: number
+  xirr: number | null
 }

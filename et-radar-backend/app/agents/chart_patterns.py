@@ -28,19 +28,23 @@ def calculate_rsi(series: pd.Series, period: int = 14):
 # ── Pattern detection functions ───────────────────────────────────────────────
 
 def detect_52w_breakout(df: pd.DataFrame) -> bool:
-    if len(df) < 253:
+    if len(df) < 10:
         return False
-    prev_252_max = df["close"].iloc[-252:-1].max()
+    prev_252_max = df["close"].iloc[-min(252, len(df)-1):-1].max()
     today_close = df["close"].iloc[-1]
     return float(today_close) > float(prev_252_max)
 
 
 def detect_golden_cross(df: pd.DataFrame) -> bool:
-    if len(df) < 201:
+    if len(df) < 10:
+        return False
+    short_ma = min(50, len(df)//3)
+    long_ma = min(200, len(df)-1)
+    if short_ma >= long_ma:
         return False
     df_temp = df.copy()
-    df_temp["sma50"] = df_temp["close"].rolling(50).mean()
-    df_temp["sma200"] = df_temp["close"].rolling(200).mean()
+    df_temp["sma50"] = df_temp["close"].rolling(short_ma).mean()
+    df_temp["sma200"] = df_temp["close"].rolling(long_ma).mean()
     yesterday = df_temp.iloc[-2]
     today = df_temp.iloc[-1]
     return (float(yesterday["sma50"]) <= float(yesterday["sma200"]) and
@@ -48,11 +52,15 @@ def detect_golden_cross(df: pd.DataFrame) -> bool:
 
 
 def detect_death_cross(df: pd.DataFrame) -> bool:
-    if len(df) < 201:
+    if len(df) < 10:
+        return False
+    short_ma = min(50, len(df)//3)
+    long_ma = min(200, len(df)-1)
+    if short_ma >= long_ma:
         return False
     df_temp = df.copy()
-    df_temp["sma50"] = df_temp["close"].rolling(50).mean()
-    df_temp["sma200"] = df_temp["close"].rolling(200).mean()
+    df_temp["sma50"] = df_temp["close"].rolling(short_ma).mean()
+    df_temp["sma200"] = df_temp["close"].rolling(long_ma).mean()
     yesterday = df_temp.iloc[-2]
     today = df_temp.iloc[-1]
     return (float(yesterday["sma50"]) >= float(yesterday["sma200"]) and
@@ -60,16 +68,17 @@ def detect_death_cross(df: pd.DataFrame) -> bool:
 
 
 def detect_rsi_bounce(df: pd.DataFrame) -> bool:
-    if len(df) < 30:
+    if len(df) < 15:
         return False
     rsi = calculate_rsi(df["close"], period=14)
     return float(rsi.iloc[-2]) < 35 and float(rsi.iloc[-1]) > 40
 
 
 def detect_support_bounce(df: pd.DataFrame) -> bool:
-    if len(df) < 91:
+    if len(df) < 10:
         return False
-    low_90 = float(df["low"].iloc[-91:-1].min())
+    lookback = min(90, len(df)-1)
+    low_90 = float(df["low"].iloc[-lookback:-1].min())
     today_close = float(df["close"].iloc[-1])
     return today_close > low_90 * 1.03 and df["low"].iloc[-5:].min() <= low_90 * 1.02
 
@@ -95,14 +104,16 @@ PATTERN_FUNCTIONS = {
 
 def backtest_pattern(detect_fn, df: pd.DataFrame, forward_days: int = 30) -> dict:
     """Backtest pattern — excludes last 30 days to avoid lookahead bias."""
-    if len(df) < 252:
+    if len(df) < 20:
         return {"occurrences": 0, "success_rate": 0.0, "avg_return_pct": 0.0}
+    forward_days = min(forward_days, len(df)//4)
     results, returns = [], []
     # Exclude last 30 days (no lookahead bias)
     end_idx = len(df) - forward_days - 30
     if end_idx <= 200:
         return {"occurrences": 0, "success_rate": 0.0, "avg_return_pct": 0.0}
-    for i in range(200, end_idx):
+    start_idx = min(10, end_idx - 1)
+    for i in range(start_idx, end_idx):
         window = df.iloc[:i + 1]
         try:
             if detect_fn(window):
@@ -199,7 +210,7 @@ async def analyse_stock_patterns(symbol: str, db) -> list[dict]:
     )
     rows = ohlcv_result.scalars().all()
 
-    if len(rows) < 30:
+    if len(rows) < 10:
         # Not enough data — return all 5 with detected=False
         return [
             {

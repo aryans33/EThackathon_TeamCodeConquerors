@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { getStocks } from "@/lib/api";
 
 /* ─────────────────────────────────────────────
    TRUE CSS 3D CUBOID  helper
@@ -333,6 +334,143 @@ function Connectors({ cx, cy, firing, centreGlow }: {
   );
 }
 
+/* ── Skeleton loader ── */
+function SkeletonRow() {
+  return (
+    <div className="flex items-center justify-between p-3 border-b border-slate-700 animate-pulse">
+      <div className="flex flex-col gap-2 flex-1">
+        <div className="h-4 w-24 bg-slate-700 rounded" />
+        <div className="h-3 w-32 bg-slate-700 rounded" />
+      </div>
+      <div className="flex flex-col gap-2 text-right">
+        <div className="h-4 w-20 bg-slate-700 rounded" />
+        <div className="h-3 w-16 bg-slate-700 rounded" />
+      </div>
+    </div>
+  );
+}
+
+/* ── Watchlist component ── */
+function WatchlistSection() {
+  const [stocks, setStocks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  const fetchStocks = async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const data = await getStocks();
+      setStocks(data);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStocks();
+  }, []);
+
+  return (
+    <div style={{ padding: "20px", background: "rgba(12, 26, 18, 0.6)", border: "1px solid rgba(154, 229, 171, 0.2)", borderRadius: "8px" }}>
+      <h3 style={{ fontSize: "14px", color: "#f0fdf4", fontWeight: "700", marginBottom: "12px" }}>Tracked Stocks</h3>
+
+      {error ? (
+        <div style={{ textAlign: "center", padding: "16px", color: "#ef4444", fontSize: "13px" }}>
+          <div style={{ marginBottom: "10px" }}>Could not load stocks</div>
+          <button
+            onClick={fetchStocks}
+            style={{
+              padding: "6px 12px",
+              background: "rgba(154, 229, 171, 0.2)",
+              border: "1px solid rgba(154, 229, 171, 0.4)",
+              borderRadius: "4px",
+              color: "#9ae5ab",
+              fontSize: "12px",
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+            onMouseOver={(e) => {
+              (e.target as any).style.background = "rgba(154, 229, 171, 0.3)";
+            }}
+            onMouseOut={(e) => {
+              (e.target as any).style.background = "rgba(154, 229, 171, 0.2)";
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      ) : loading ? (
+        <div style={{ maxHeight: "400px", overflow: "hidden", borderRadius: "4px" }}>
+          {Array.from({ length: 10 }).map((_, i) => (
+            <SkeletonRow key={i} />
+          ))}
+        </div>
+      ) : stocks.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "16px", color: "#64748b", fontSize: "13px" }}>No stocks available</div>
+      ) : (
+        <div style={{ maxHeight: "400px", overflow: "auto", borderRadius: "4px" }}>
+          {stocks.map((stock) => (
+            <div
+              key={stock.symbol}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "12px 10px",
+                borderBottom: "1px solid rgba(154, 229, 171, 0.1)",
+                transition: "background 0.2s",
+              }}
+              onMouseOver={(e) => {
+                (e.currentTarget as any).style.background = "rgba(154, 229, 171, 0.05)";
+              }}
+              onMouseOut={(e) => {
+                (e.currentTarget as any).style.background = "transparent";
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: "700", color: "#f0fdf4", fontSize: "13px" }}>{stock.symbol}</div>
+                <div style={{ color: "#64748b", fontSize: "11px", maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {stock.name}
+                </div>
+              </div>
+
+              <div style={{ textAlign: "right" }}>
+                {stock.latest_close ? (
+                  <>
+                    <div style={{ color: "#f0fdf4", fontFamily: "monospace", fontSize: "12px", fontWeight: "600", marginBottom: "2px" }}>
+                      ₹{stock.latest_close.toLocaleString("en-IN")}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        color:
+                          stock.change_pct > 0
+                            ? "#4ade80"
+                            : stock.change_pct < 0
+                              ? "#f87171"
+                              : "#64748b",
+                      }}
+                    >
+                      {stock.change_pct > 0 ? "+" : ""}
+                      {stock.change_pct.toFixed(2)}%
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ color: "#64748b", fontSize: "12px" }}>—</div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════
    MAIN COMPONENT
 ═══════════════════════════════════════ */
@@ -586,6 +724,27 @@ export default function EtRadarBrain3D() {
 
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ── WATCHLIST SECTION ── */}
+      <div style={{
+        marginTop: 60,
+        maxWidth: 1260,
+        width: "100%",
+        padding: "0 40px",
+      }}>
+        <h2 style={{
+          fontSize: 28,
+          fontWeight: 800,
+          color: "#f0fdf4",
+          marginBottom: 24,
+          fontFamily: "'Syne',sans-serif",
+        }}>
+          Today's Market
+        </h2>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", maxWidth: 500 }}>
+          <WatchlistSection />
         </div>
       </div>
 

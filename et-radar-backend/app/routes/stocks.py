@@ -58,6 +58,17 @@ class BulkDealOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class StockPriceOut(BaseModel):
+    symbol: str
+    name: str
+    sector: Optional[str] = None
+    latest_close: Optional[float] = None
+    prev_close: Optional[float] = None
+    change: Optional[float] = None
+    change_pct: Optional[float] = None
+    date: Optional[str] = None
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.get("/stocks", response_model=List[StockOut])
@@ -161,3 +172,68 @@ async def get_bulk_deals(
         )
         for d in deals
     ]
+
+
+@router.get("/stocks/prices", response_model=List[StockPriceOut])
+async def get_stock_prices(db: AsyncSession = Depends(get_db)):
+    """GET /api/stocks/prices — latest close price and change for all stocks."""
+    # Get all stocks with joinedload for OHLCV
+    result = await db.execute(
+        select(Stock).options(joinedload(Stock.ohlcv_records))
+    )
+    stocks = result.scalars().unique().all()
+
+    prices = []
+    for stock in stocks:
+        # Sort OHLCV records by date descending
+        ohlcv_sorted = sorted(stock.ohlcv_records, key=lambda x: x.date, reverse=True)
+        
+        if not ohlcv_sorted:
+            # No OHLCV data
+            prices.append(
+                StockPriceOut(
+                    symbol=stock.symbol,
+                    name=stock.name,
+                    sector=stock.sector,
+                    latest_close=None,
+                    prev_close=None,
+                    change=None,
+                    change_pct=None,
+                    date=None
+                )
+            )
+        elif len(ohlcv_sorted) == 1:
+            # Only 1 row: no previous close
+            ohlcv = ohlcv_sorted[0]
+            prices.append(
+                StockPriceOut(
+                    symbol=stock.symbol,
+                    name=stock.name,
+                    sector=stock.sector,
+                    latest_close=ohlcv.close,
+                    prev_close=None,
+                    change=0.0,
+                    change_pct=0.0,
+                    date=ohlcv.date.strftime("%Y-%m-%d")
+                )
+            )
+        else:
+            # 2 or more rows
+            latest = ohlcv_sorted[0]
+            prev = ohlcv_sorted[1]
+            change = latest.close - prev.close
+            change_pct = (change / prev.close) * 100 if prev.close != 0 else 0.0
+            prices.append(
+                StockPriceOut(
+                    symbol=stock.symbol,
+                    name=stock.name,
+                    sector=stock.sector,
+                    latest_close=round(latest.close, 2),
+                    prev_close=round(prev.close, 2),
+                    change=round(change, 2),
+                    change_pct=round(change_pct, 2),
+                    date=latest.date.strftime("%Y-%m-%d")
+                )
+            )
+
+    return prices
