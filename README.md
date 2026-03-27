@@ -200,6 +200,7 @@ Inside `et-radar-backend`:
 
 ```bash
 python scripts/seed_data.py
+python scripts/seed_ohlcv.py
 python scripts/fetch_real_data.py
 python scripts/test_chat.py
 ```
@@ -207,8 +208,39 @@ python scripts/test_chat.py
 What they do:
 
 - `seed_data.py`: inserts baseline/demo records
+- `seed_ohlcv.py`: generates synthetic OHLCV history for tracked stocks
 - `fetch_real_data.py`: attempts market data ingestion for configured symbols
 - `test_chat.py`: basic chat route/system check
+
+## OHLCV Verification Checklist
+
+After running `python scripts/seed_ohlcv.py`, verify record counts:
+
+```bash
+python -c "
+import asyncio
+from sqlalchemy import select, func
+from app.database import AsyncSessionLocal
+from app.models.tables import OHLCV, Signal, Stock
+
+async def check():
+  async with AsyncSessionLocal() as db:
+    stocks = await db.scalar(select(func.count(Stock.id)))
+    rows = await db.scalar(select(func.count(OHLCV.id)))
+    sigs = await db.scalar(select(func.count(Signal.id)))
+    print(f'Stocks: {stocks}')
+    print(f'OHLCV rows: {rows}')
+    print(f'Signals: {sigs}')
+
+asyncio.run(check())
+"
+```
+
+Typical local expectations:
+
+- `Stocks: 20`
+- `OHLCV rows: 7000+`
+- `Signals: 10+` (after radar/demo signal generation)
 
 ## Typical Run Order
 
@@ -241,6 +273,15 @@ What they do:
 - If worker cannot connect, verify `REDIS_URL`, `CELERY_BROKER_URL`, and `CELERY_RESULT_BACKEND`.
 - If CORS issues appear, verify `FRONTEND_URL` matches your frontend origin.
 - If no data appears in charts, check DB connectivity and run a data script.
+- If `python scripts/seed_ohlcv.py` fails with `duplicate key value violates unique constraint "uq_ohlcv_stock_date"`, you likely have pre-existing OHLCV rows from a prior run or an older script version.
+- Run commands from the backend directory and ensure `PYTHONPATH=.` is set for that shell before seeding.
+- If you need a clean reseed, truncate only OHLCV data first, then rerun seeding:
+
+```sql
+TRUNCATE TABLE ohlcv RESTART IDENTITY;
+```
+
+- Frontend pages should call backend APIs through `et-radar-frontend/lib/api.ts` (base `http://localhost:8000/api` by default). Avoid using Next-local paths like `/api/portfolio/history` unless a Next route handler exists.
 
 ## Disclaimer
 
