@@ -19,10 +19,10 @@ const TOAST_STYLES: Record<ToastType, string> = {
 }
 
 const TOAST_ICONS: Record<ToastType, string> = {
-  success: '✓',
-  error: '✕',
-  warning: '⚠',
-  info: 'ℹ',
+  success: 'OK',
+  error: 'ERR',
+  warning: 'WARN',
+  info: 'INFO',
 }
 
 type ToastCardProps = {

@@ -336,7 +336,7 @@ export default function ChatPage() {
             className="bg-transparent border border-transparent px-2 py-1 rounded-md text-[#6b7280] hover:text-red-400 transition-colors"
             title="Clear history"
           >
-            🗑
+            Clear
           </button>
         </div>
       </div>
@@ -398,7 +398,7 @@ export default function ChatPage() {
                             className="absolute top-2 right-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-200"
                             title="Copy"
                           >
-                            {copiedMessageId === msg.id ? '✓' : '📋'}
+                            {copiedMessageId === msg.id ? 'Copied' : 'Copy'}
                           </button>
                         )}
                       </div>

@@ -209,7 +209,7 @@ export default function FilingsPage() {
         </div>
       ) : visibleFilings.length === 0 ? (
         <div className="rounded-[10px] border border-[#30363d] bg-[#161b22] px-6 py-10 text-center">
-          <div className="text-5xl leading-none">📋</div>
+          <div className="text-5xl leading-none">-</div>
           <div className="text-white text-lg font-semibold mt-3">No filings found</div>
           <div className="text-[#9ca3af] text-sm mt-1">Try refreshing or check back after market hours</div>
         </div>

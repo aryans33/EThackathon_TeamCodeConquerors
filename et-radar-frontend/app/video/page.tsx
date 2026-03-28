@@ -435,7 +435,7 @@ export default function VideoPage() {
     <main className='max-w-7xl mx-auto px-4 md:px-6 py-6 space-y-4'>
       <div className='flex flex-wrap items-center justify-between gap-3'>
         <div>
-          <h1 className='text-2xl font-bold text-white'>📺 Daily Market Wrap</h1>
+          <h1 className='text-2xl font-bold text-white'>Daily Market Wrap</h1>
           <p className='text-sm text-slate-400 mt-1'>AI-generated in seconds · Zero human editing · Powered by Groq</p>
           <p className='text-xs text-slate-500 mt-1'>{todayText}</p>
         </div>
@@ -459,7 +459,7 @@ export default function VideoPage() {
 
       {loadingScript && (
         <div className='rounded-xl border border-[#30363d] bg-[#161b22] p-6'>
-          <p className='text-slate-200'>⏳ AI is writing today&apos;s script...</p>
+          <p className='text-slate-200'>AI is writing today&apos;s script...</p>
           <div className='mt-3 h-2 rounded-full bg-slate-800 overflow-hidden border border-slate-700'>
             <div className='h-full bg-blue-500 transition-all duration-100' style={{ width: `${genProgress}%` }} />
           </div>
@@ -474,7 +474,7 @@ export default function VideoPage() {
               <div style={{ height: 360, opacity: fadeIn ? 1 : 0, transition: 'opacity 0.15s ease-in-out' }}>
                 {isSpeaking && (
                   <div className='absolute right-8 mt-3 z-10 inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs bg-blue-900/40 border border-blue-700 text-blue-200'>
-                    🔊 Speaking...
+                    Speaking...
                   </div>
                 )}
                 {renderScene()}
@@ -520,7 +520,7 @@ export default function VideoPage() {
                 onClick={stopSpeech}
                 className='px-3 py-2 rounded-lg border border-slate-600 text-slate-200 hover:border-red-500 text-sm'
               >
-                🔇 Mute
+                Mute
               </button>
             </div>
           </section>

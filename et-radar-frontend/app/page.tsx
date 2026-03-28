@@ -629,9 +629,9 @@ export default function EtRadarBrain3D() {
             opacity:mounted?1:0, transform:mounted?"translateY(0)":"translateY(16px)",
             transition:"all .8s ease .15s"
           }}>
-            Intelligent recommendations, real-time Nifty &amp; Sensex insights,
-            advanced portfolio optimization, and a detailed Mutual Fund analysis,
-            all at your fingertips.
+            Actionable AI signals, real-time Nifty and Sensex snapshots,
+            portfolio optimization insights, and detailed mutual fund analysis,
+            all in one place.
           </p>
 
           <div style={{ display:"flex",gap:12,

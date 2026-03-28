@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { label: 'Filings', href: '/filings' },
   { label: 'Portfolio', href: '/portfolio', id: 'portfolio-nav' },
   { label: 'AI Chat', href: '/chat', id: 'ai-chat-nav' },
-  { label: '📺 Market Video', href: '/video' },
+  { label: 'Market Video', href: '/video' },
 ]
 
 function isActivePath(currentPath: string, href: string): boolean {

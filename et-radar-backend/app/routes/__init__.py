@@ -6,6 +6,7 @@ from app.routes.chat import router as chat_router
 from app.routes.status import router as status_router
 from app.routes.filings import router as filings_router
 from app.routes.demo import router as demo_router
+from app.routes.video import router as video_router
 
 __all__ = [
     "stocks_router",
@@ -16,4 +17,5 @@ __all__ = [
     "status_router",
     "filings_router",
     "demo_router",
+    "video_router",
 ]

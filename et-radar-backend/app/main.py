@@ -8,8 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
-from app.routes import stocks, signals, patterns, portfolio, chat, status, filings, demo, auth
-from app.routers import video
+from app.routes import stocks, signals, patterns, portfolio, chat, status, filings, demo, auth, video
 
 
 @asynccontextmanager
@@ -27,17 +26,17 @@ async def lifespan(app: FastAPI):
             messages=[{"role": "user", "content": "Say OK"}],
             max_tokens=5,
         )
-        print(f"✅ Groq connection OK: {test.choices[0].message.content}")
+        print(f"Groq connection OK: {test.choices[0].message.content}")
     except Exception as e:
-        print(f"⚠️  WARNING: Groq connection failed: {e}")
+        print(f"WARNING: Groq connection failed: {e}")
 
     key = settings.GROQ_API_KEY
     if not key:
-        print("❌ WARNING: GROQ_API_KEY is NOT set in .env!")
+        print("WARNING: GROQ_API_KEY is NOT set in .env!")
     else:
-        print(f"✅ GROQ_API_KEY detected: {key[:4]}...{key[-4:]}")
+        print(f"GROQ_API_KEY detected: {key[:4]}...{key[-4:]}")
 
-    print("🚀 ET Radar backend started.")
+    print("ET Radar backend started.")
     yield
 
 

@@ -247,16 +247,16 @@ export default function PortfolioPage() {
         
         <div className="space-y-4 text-left max-w-[280px] mx-auto">
           <div className={`transition-opacity duration-500 ${loadingStep >= 1 ? 'opacity-100' : 'opacity-0'}`}>
-            <span className="dark:text-[#7dd3fc] light:text-sky-600 mr-3 text-lg">✓</span> <span className="dark:text-[#e2e8f0] light:text-[#1f2937]">PDF parsed successfully</span>
+            <span className="dark:text-[#7dd3fc] light:text-sky-600 mr-3 text-lg">OK</span> <span className="dark:text-[#e2e8f0] light:text-[#1f2937]">PDF parsed successfully</span>
           </div>
           <div className={`transition-opacity duration-500 ${loadingStep >= 2 ? 'opacity-100' : 'opacity-0'}`}>
-            <span className="dark:text-[#7dd3fc] light:text-sky-600 mr-3 text-lg">✓</span> <span className="dark:text-[#e2e8f0] light:text-[#1f2937]">Calculating XIRR...</span>
+            <span className="dark:text-[#7dd3fc] light:text-sky-600 mr-3 text-lg">OK</span> <span className="dark:text-[#e2e8f0] light:text-[#1f2937]">Calculating XIRR...</span>
           </div>
           <div className={`transition-opacity duration-500 ${loadingStep >= 3 ? 'opacity-100' : 'opacity-0'}`}>
-            <span className="dark:text-[#7dd3fc] light:text-sky-600 mr-3 text-lg">✓</span> <span className="dark:text-[#e2e8f0] light:text-[#1f2937]">Detecting fund overlaps...</span>
+            <span className="dark:text-[#7dd3fc] light:text-sky-600 mr-3 text-lg">OK</span> <span className="dark:text-[#e2e8f0] light:text-[#1f2937]">Detecting fund overlaps...</span>
           </div>
           <div className={`transition-opacity duration-500 ${loadingStep >= 4 ? 'opacity-100' : 'opacity-0'}`}>
-            <span className="dark:text-[#7dd3fc] light:text-sky-600 mr-3 text-lg">✓</span> <span className="dark:text-[#e2e8f0] light:text-[#1f2937]">Generating AI recommendations...</span>
+            <span className="dark:text-[#7dd3fc] light:text-sky-600 mr-3 text-lg">OK</span> <span className="dark:text-[#e2e8f0] light:text-[#1f2937]">Generating AI recommendations...</span>
           </div>
         </div>
       </main>

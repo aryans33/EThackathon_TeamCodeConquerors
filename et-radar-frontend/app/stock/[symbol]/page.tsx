@@ -300,7 +300,7 @@ export default function StockDetail() {
 
                     {p.backtest.occurrences < 3 || p.backtest.success_rate === 0 ? (
                       <p className="text-[#9ca3af] text-xs mt-4 italic">
-                        📊 Fewer than 3 historical occurrences - not enough data for reliable backtest
+                        Fewer than 3 historical occurrences - not enough data for reliable backtest
                       </p>
                     ) : (
                       <div className="grid grid-cols-3 gap-3 mt-4">
@@ -332,7 +332,7 @@ export default function StockDetail() {
                         className="mt-4 rounded-md px-3.5 py-2.5"
                         style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}
                       >
-                        <p className="text-[#60a5fa] text-xs font-bold">💡 What to watch:</p>
+                        <p className="text-[#60a5fa] text-xs font-bold">What to watch:</p>
                         <p className="text-[#9ca3af] text-[13px] mt-1 leading-relaxed">
                           {ACTIONABLE_ADVICE[formatPattern(p.pattern_name)] || 'Track volume and confirmation before taking any action.'}
                         </p>

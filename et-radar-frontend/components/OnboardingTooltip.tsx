@@ -13,25 +13,25 @@ export const ONBOARDING_STEPS: TooltipStep[] = [
   {
     targetId: 'live-signals-section',
     title: 'Live Signals',
-    icon: '📡',
+    icon: 'LS',
     body: 'These are AI-detected opportunities updated every hour. Each signal is backed by real BSE filings, bulk deals, or earnings data - not just guesswork.',
   },
   {
     targetId: 'confidence-bar',
     title: 'Confidence Score',
-    icon: '🎯',
+    icon: 'CS',
     body: 'The higher this number, the stronger the signal. Above 75% means multiple data sources agree. Below 60% means use caution and do your own research.',
   },
   {
     targetId: 'ai-chat-nav',
     title: 'Ask ET Radar AI',
-    icon: '🤖',
+    icon: 'AI',
     body: "Ask anything in plain English - 'Should I buy RELIANCE?' or 'What happened to HDFC Bank today?' The AI knows your portfolio if you've uploaded it.",
   },
   {
     targetId: 'portfolio-nav',
     title: 'Portfolio X-Ray',
-    icon: '📊',
+    icon: 'PX',
     body: 'Upload your CAMS or KFintech PDF statement and get instant analysis - fund overlap, XIRR returns, and AI rebalancing suggestions. Takes 30 seconds.',
   },
 ]
