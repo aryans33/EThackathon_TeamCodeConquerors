@@ -40,6 +40,26 @@ export async function getStocks() {
   return r.data as Stock[]
 }
 
+export async function getStockPrices() {
+  try {
+    const r = await api.get('/stocks/prices')
+    return r.data
+  } catch {
+    try {
+      const r = await api.get('/stocks')
+      return r.data.map((s: any) => ({
+        ...s,
+        latest_close: null,
+        change: 0,
+        change_pct: 0,
+        date: null
+      }))
+    } catch {
+      return []
+    }
+  }
+}
+
 export async function getOHLCV(symbol: string, days = 365) {
   const r = await api.get('/ohlcv', { params: { symbol, days } })
   return r.data as OHLCVRow[]

@@ -3,7 +3,6 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getOHLCV, getPatterns, getSignals, getStocks } from '@/lib/api'
 import type { OHLCVRow, Pattern, Signal, Stock } from '@/lib/api'
-import { createChart } from 'lightweight-charts'
 
 function timeAgo(iso: string): string {
   if (!iso) return ''
@@ -32,13 +31,18 @@ export default function StockDetail() {
   const router = useRouter()
   const symbol = params.symbol as string
   
+  const chartRef = useRef<any>(null)
+  const candlesRef = useRef<any>(null)
+  const volumeRef = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   
   const [stock, setStock] = useState<Stock | null>(null)
-  const [ohlcv, setOhlcv] = useState<OHLCVRow[]>([])
+  const [ohlcv, setOhlcv] = useState<any[]>([])
+  const [ohlcvLoading, setOhlcvLoading] = useState(true)
+  const [ohlcvError, setOhlcvError] = useState(false)
   const [patterns, setPatterns] = useState<Pattern[]>([])
   const [signals, setSignals] = useState<Signal[]>([])
-  const [timeRange, setTimeRange] = useState<number>(365) // 1Y default
+  const [timeRange, setTimeRange] = useState('1Y')
   
   useEffect(() => {
     getStocks().then(stocks => {
@@ -54,58 +58,80 @@ export default function StockDetail() {
   }, [symbol])
   
   useEffect(() => {
-    getOHLCV(symbol, timeRange).then(setOhlcv).catch(console.error)
-  }, [symbol, timeRange])
+    if (!symbol) return
+    setOhlcvLoading(true)
+    setOhlcvError(false)
+    getOHLCV(symbol as string, 400)
+      .then(data => {
+        setOhlcv(data || [])
+        setOhlcvLoading(false)
+      })
+      .catch(() => {
+        setOhlcvError(true)
+        setOhlcvLoading(false)
+      })
+  }, [symbol])
   
   useEffect(() => {
-    if (!containerRef.current || ohlcv.length === 0) return
-    
+    if (ohlcvLoading || !containerRef.current) return
+    if (ohlcv.length === 0) return
+
+    if (chartRef.current) {
+      chartRef.current.remove()
+      chartRef.current = null
+    }
+
+    const { createChart } = require('lightweight-charts')
+
     const chart = createChart(containerRef.current, {
       width: containerRef.current.offsetWidth,
-      height: 420,
+      height: 400,
       layout: {
-        background: { color: '#0f172a' },
-        textColor: '#94a3b8',
+        background: { color: '#161b22' },
+        textColor: '#8b949e',
       },
       grid: {
-        vertLines: { color: '#1e293b' },
-        horzLines: { color: '#1e293b' },
+        vertLines: { color: '#21262d' },
+        horzLines: { color: '#21262d' },
       },
+      rightPriceScale: { borderColor: '#30363d' },
+      timeScale: { borderColor: '#30363d', timeVisible: true },
       crosshair: { mode: 1 },
-      rightPriceScale: { borderColor: '#1e293b' },
-      timeScale: { borderColor: '#1e293b', timeVisible: true },
     })
+    chartRef.current = chart
 
-    const candleSeries = chart.addCandlestickSeries({
-      upColor: '#22c55e',
-      downColor: '#ef4444',
-      borderUpColor: '#22c55e',
-      borderDownColor: '#ef4444',
-      wickUpColor: '#22c55e',
-      wickDownColor: '#ef4444',
+    const candles = chart.addCandlestickSeries({
+      upColor: '#16a34a',
+      downColor: '#f85149',
+      borderUpColor: '#16a34a',
+      borderDownColor: '#f85149',
+      wickUpColor: '#16a34a',
+      wickDownColor: '#f85149',
     })
+    candlesRef.current = candles
 
-    const volumeSeries = chart.addHistogramSeries({
+    const volume = chart.addHistogramSeries({
       priceFormat: { type: 'volume' },
       priceScaleId: '',
-    })
-
-    chart.priceScale('').applyOptions({
       scaleMargins: { top: 0.85, bottom: 0 },
     })
+    volumeRef.current = volume
 
-    candleSeries.setData(ohlcv.map(d => ({
+    const days = { '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 400 }
+    const sliced = ohlcv.slice(-(days[timeRange as keyof typeof days] || 400))
+
+    candles.setData(sliced.map((d: any) => ({
       time: d.date,
-      open: d.open,
-      high: d.high,
-      low: d.low,
-      close: d.close
+      open: Number(d.open),
+      high: Number(d.high),
+      low: Number(d.low),
+      close: Number(d.close),
     })))
 
-    volumeSeries.setData(ohlcv.map(d => ({
+    volume.setData(sliced.map((d: any) => ({
       time: d.date,
-      value: d.volume,
-      color: d.close >= d.open ? '#22c55e30' : '#ef444430'
+      value: Number(d.volume),
+      color: Number(d.close) >= Number(d.open) ? '#16a34a30' : '#f8514930',
     })))
 
     chart.timeScale().fitContent()
@@ -120,16 +146,29 @@ export default function StockDetail() {
     return () => {
       window.removeEventListener('resize', handleResize)
       chart.remove()
+      chartRef.current = null
     }
-  }, [ohlcv])
+  }, [ohlcv, ohlcvLoading, timeRange])
 
-  const ranges = [
-    { label: '1W', val: 7 },
-    { label: '1M', val: 30 },
-    { label: '3M', val: 90 },
-    { label: '6M', val: 180 },
-    { label: '1Y', val: 365 }
-  ]
+  const handleTimeRange = (range: string) => {
+    setTimeRange(range)
+    if (!candlesRef.current || !volumeRef.current) return
+    const days: Record<string, number> = {
+      '1W': 7, '1M': 30, '3M': 90, '6M': 180, '1Y': 400
+    }
+    const sliced = ohlcv.slice(-days[range])
+    candlesRef.current.setData(sliced.map((d: any) => ({
+      time: d.date,
+      open: Number(d.open), high: Number(d.high),
+      low: Number(d.low), close: Number(d.close),
+    })))
+    volumeRef.current.setData(sliced.map((d: any) => ({
+      time: d.date,
+      value: Number(d.volume),
+      color: Number(d.close) >= Number(d.open) ? '#16a34a30' : '#f8514930',
+    })))
+    candlesRef.current.priceScale().applyOptions({ autoScale: true })
+  }
 
   const lastPrice = ohlcv.length > 0 ? ohlcv[ohlcv.length - 1].close : 0
   const prevPrice = ohlcv.length > 1 ? ohlcv[ohlcv.length - 2].close : lastPrice
@@ -152,7 +191,7 @@ export default function StockDetail() {
           <div className="text-xl font-medium mt-1">
             ₹{lastPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
             {(diff !== 0) && (
-              <span className={`ml-3 text-sm font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+              <span className={`ml-3 text-sm font-medium ${isPositive ? 'text-sky-300' : 'text-red-400'}`}>
                 {isPositive ? '+' : ''}₹{diff.toFixed(2)} ({isPositive ? '+' : ''}{pct.toFixed(2)}%)
               </span>
             )}
@@ -164,24 +203,36 @@ export default function StockDetail() {
         {/* LEFT COLUMN: Chart & Patterns */}
         <div className="flex-[3]">
           {/* CHART CONTAINER */}
-          <div className="bg-slate-900 border border-slate-800 p-1 rounded-xl shadow-lg relative h-[430px]">
-            {ohlcv.length === 0 && <div className="absolute inset-0 flex items-center justify-center text-slate-500">Loading chart data...</div>}
-            <div ref={containerRef} className="w-full h-full" />
+          <div className="bg-slate-900 border border-slate-800 p-1 rounded-xl shadow-lg relative">
+            {ohlcvLoading ? (
+              <div className="h-[400px] rounded-xl bg-[#161b22] animate-pulse" />
+            ) : ohlcvError || ohlcv.length === 0 ? (
+              <div className="h-[400px] rounded-xl bg-[#161b22] flex items-center justify-center border border-[#30363d]">
+                <div className="text-center">
+                  <p className="text-slate-400 text-sm">No price data available</p>
+                  <p className="text-slate-600 text-xs mt-1">
+                    Run seed_ohlcv.py to populate stock history
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div ref={containerRef} className="w-full rounded-xl overflow-hidden" />
+            )}
           </div>
           
           {/* TIME RANGE */}
           <div className="flex space-x-2 mt-4">
-            {ranges.map(r => (
+            {['1W', '1M', '3M', '6M', '1Y'].map(r => (
               <button
-                key={r.label}
-                onClick={() => setTimeRange(r.val)}
-                className={`px-4 py-1.5 text-sm rounded border transition-colors ${
-                  timeRange === r.val 
-                    ? 'bg-green-900/40 text-green-400 border-green-800' 
-                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                key={r}
+                onClick={() => handleTimeRange(r)}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  timeRange === r
+                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                    : 'bg-[#161b22] text-slate-400 border border-[#30363d] hover:text-white'
                 }`}
               >
-                {r.label}
+                {r}
               </button>
             ))}
           </div>
@@ -194,43 +245,60 @@ export default function StockDetail() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {patterns.map((p, i) => (
-                  <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                  <div
+                    key={i}
+                    className={`bg-[#161b22] border border-[#30363d] rounded-xl p-5 border-l-4 ${
+                      p.pattern_name === 'death_cross' ? 'border-l-red-500' : 'border-l-green-500'
+                    }`}
+                  >
                     <div className="flex justify-between items-start">
-                      <h4 className="font-bold text-lg text-slate-200">{formatPattern(p.pattern_name)}</h4>
-                      <div className="flex items-center space-x-1.5 bg-slate-800 px-2.5 py-1 rounded-full text-xs">
-                        <span className={p.detected_today ? 'text-green-400' : 'text-slate-400'}>
-                          {p.detected_today ? '● Active Today' : '○ Not Active'}
+                      <h4 className="text-white font-semibold text-base">{formatPattern(p.pattern_name)}</h4>
+                      {p.detected_today ? (
+                        <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                          Active Today
                         </span>
-                      </div>
+                      ) : (
+                        <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-[#21262d] text-slate-500 border border-[#30363d]">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+                          Not Active
+                        </span>
+                      )}
                     </div>
-                    <p className="text-sm text-slate-400 mt-3 leading-relaxed">
-                      {!p.explanation || p.explanation.trim() === ''
-                        ? 'Pattern analysis will be available once more price data is collected.'
-                        : p.explanation}
-                    </p>
-                    {p.backtest.occurrences === 0 ? (
-                      <div className="mt-5 bg-slate-800/30 rounded-lg p-3 text-center">
-                        <div className="text-xs text-slate-500 uppercase tracking-wider">
-                          Back-test data not yet available
-                        </div>
-                      </div>
+                    {!p.explanation || p.explanation.trim() === '' || p.explanation.startsWith('Insufficient') ? (
+                      <p className="text-slate-500 text-sm mt-3 italic">
+                        Analysis available once pattern is detected
+                      </p>
                     ) : (
-                      <div className="grid grid-cols-3 gap-3 mt-5">
-                        <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                          <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Occurrences</div>
-                          <div className="font-medium text-slate-300">{p.backtest.occurrences}x in 3Y</div>
+                      <p className="text-slate-300 text-sm mt-3 leading-relaxed">
+                        {p.explanation}
+                      </p>
+                    )}
+                    {p.backtest.occurrences === 0 ? (
+                      <p className="text-slate-600 text-xs mt-3">
+                        Back-test data not yet available
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-3 mt-4">
+                        <div className="bg-[#0d1117] rounded-lg p-3 text-center">
+                          <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Occurrences</p>
+                          <p className="font-semibold text-sm text-slate-300">{p.backtest.occurrences}x in 3Y</p>
                         </div>
-                        <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                          <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Success</div>
-                          <div className={`font-medium ${
-                            p.backtest.success_rate * 100 > 60 ? 'text-green-400' : p.backtest.success_rate * 100 >= 40 ? 'text-amber-400' : 'text-red-400'
-                          }`}>{(p.backtest.success_rate * 100).toFixed(0)}%</div>
+                        <div className="bg-[#0d1117] rounded-lg p-3 text-center">
+                          <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Success Rate</p>
+                          <p className={`font-semibold text-sm ${
+                            p.backtest.success_rate > 0.6 ? 'text-green-400' : p.backtest.success_rate > 0.4 ? 'text-amber-400' : 'text-red-400'
+                          }`}>
+                            {(p.backtest.success_rate * 100).toFixed(0)}%
+                          </p>
                         </div>
-                        <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                          <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Avg Return</div>
-                          <div className={`font-medium ${
+                        <div className="bg-[#0d1117] rounded-lg p-3 text-center">
+                          <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">Avg Return</p>
+                          <p className={`font-semibold text-sm ${
                             p.backtest.avg_return_pct > 0 ? 'text-green-400' : 'text-red-400'
-                          }`}>{p.backtest.avg_return_pct > 0 ? '+' : ''}{p.backtest.avg_return_pct.toFixed(2)}%</div>
+                          }`}>
+                            {p.backtest.avg_return_pct > 0 ? '+' : ''}{p.backtest.avg_return_pct.toFixed(2)}% in 30d
+                          </p>
                         </div>
                       </div>
                     )}

@@ -36,7 +36,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     }
 
     return (
-      <div className="dark:bg-[#0c1f18] light:bg-white border border-red-500/20 rounded-xl p-6">
+      <div className="dark:bg-[#101827] light:bg-white border border-red-500/20 rounded-xl p-6">
         <div className="flex items-start gap-3">
           <span className="text-amber-400 text-lg leading-none">⚠</span>
           <div className="flex-1">
@@ -45,7 +45,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             </h3>
             <button
               type="button"
-              className="mt-3 dark:bg-[#143a2b] dark:hover:bg-[#225a44] light:bg-gray-200 light:hover:bg-gray-300 px-3 py-2 rounded-md text-sm transition-colors"
+              className="mt-3 dark:bg-[#22314a] dark:hover:bg-[#2f4f75] light:bg-gray-200 light:hover:bg-gray-300 px-3 py-2 rounded-md text-sm transition-colors"
               onClick={() => window.location.reload()}
             >
               Reload page

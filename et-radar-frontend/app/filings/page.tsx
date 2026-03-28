@@ -99,7 +99,7 @@ export default function FilingsPage() {
                   </span>
                 )}
                 {typeof f.confidence === 'number' && (
-                  <span className="px-2 py-1 rounded-md text-xs bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                  <span className="px-2 py-1 rounded-md text-xs bg-sky-500/15 text-sky-300 border border-sky-500/30">
                     {f.confidence}%
                   </span>
                 )}
@@ -116,7 +116,7 @@ export default function FilingsPage() {
                   href={f.source_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-block mt-3 text-sm text-green-400 hover:text-green-300"
+                  className="inline-block mt-3 text-sm text-sky-300 hover:text-sky-300"
                 >
                   Open source →
                 </a>

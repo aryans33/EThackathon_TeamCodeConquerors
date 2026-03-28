@@ -9,10 +9,10 @@ import { getStocks } from "@/lib/api";
 ───────────────────────────────────────────── */
 function Cuboid({
   w, h, d,
-  faceColor = "rgba(12,31,24,0.97)",
-  topColor   = "rgba(20,48,32,0.97)",
-  sideColor  = "rgba(7,19,15,0.97)",
-  borderColor = "rgba(154,229,171,0.22)",
+  faceColor = "rgba(13,27,42,0.97)",
+  topColor   = "rgba(20,35,55,0.97)",
+  sideColor  = "rgba(8,15,25,0.97)",
+  borderColor = "rgba(125,211,252,0.22)",
   children,
   style = {},
 }: {
@@ -38,10 +38,10 @@ function Cuboid({
         transform: `translateZ(${d / 2}px)`,
         borderRadius: 8,
         overflow: "hidden",
-        boxShadow: "inset 0 1px 0 rgba(154,229,171,0.15)",
+        boxShadow: "inset 0 1px 0 rgba(125,211,252,0.15)",
       }}>
         {/* top shimmer line */}
-        <div style={{ position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(154,229,171,0.35),transparent)" }}/>
+        <div style={{ position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(125,211,252,0.35),transparent)" }}/>
         {children}
       </div>
 
@@ -102,13 +102,13 @@ function Cuboid({
 }
 
 /* ── mini bar chart ── */
-function MiniBar({ vals, accent = "#9ae5ab" }: { vals: number[]; accent?: string }) {
+function MiniBar({ vals, accent = "#7dd3fc" }: { vals: number[]; accent?: string }) {
   return (
     <div style={{ display:"flex", alignItems:"flex-end", gap:3, height:44 }}>
       {vals.map((v,i) => (
         <div key={i} style={{
           flex:1, height:`${v}%`, borderRadius:"2px 2px 0 0",
-          background: i===3 ? accent : `rgba(154,229,171,${0.2+v/200})`,
+          background: i===3 ? accent : `rgba(125,211,252,${0.2+v/200})`,
           transition: `height .5s ease ${i*.07}s`
         }}/>
       ))}
@@ -117,7 +117,7 @@ function MiniBar({ vals, accent = "#9ae5ab" }: { vals: number[]; accent?: string
 }
 
 /* ── mini line chart ── */
-function MiniLine({ id, color="#9ae5ab", path, fillPath }: { id:string; color?:string; path:string; fillPath:string }) {
+function MiniLine({ id, color="#7dd3fc", path, fillPath }: { id:string; color?:string; path:string; fillPath:string }) {
   return (
     <svg width="100%" height="46" viewBox="0 0 180 46" preserveAspectRatio="none">
       <defs>
@@ -135,21 +135,21 @@ function MiniLine({ id, color="#9ae5ab", path, fillPath }: { id:string; color?:s
 /* ─────────── card contents ─────────── */
 const PortfolioContent = () => (
   <div style={{ padding:"10px 10px 8px", height:"100%", boxSizing:"border-box" }}>
-    <div style={{ fontSize:8, color:"#c6f6d5", fontWeight:700, letterSpacing:1, marginBottom:6 }}>PERSONAL PORTFOLIO</div>
+    <div style={{ fontSize:8, color:"#bae6fd", fontWeight:700, letterSpacing:1, marginBottom:6 }}>PERSONAL PORTFOLIO</div>
     <MiniBar vals={[55,80,42,100,68,50,75]}/>
     <div style={{ display:"flex", flexWrap:"wrap", gap:"4px 8px", marginTop:7 }}>
       {["Stocks","NFT","Coin","F&O"].map((l,i)=>(
         <div key={l} style={{ display:"flex", alignItems:"center", gap:3 }}>
-          <div style={{ width:5, height:5, borderRadius:"50%", background:["#9ae5ab","#c6f6d5","#a0f3c5","#76d8a8"][i] }}/>
+          <div style={{ width:5, height:5, borderRadius:"50%", background:["#7dd3fc","#bae6fd","#7dd3fc","#38bdf8"][i] }}/>
           <span style={{ fontSize:7, color:"#9ca3af" }}>{l}</span>
         </div>
       ))}
     </div>
     <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:3, marginTop:7 }}>
       {["₹2.4L","₹89K","₹1.1L","₹34K"].map((v,i)=>(
-        <div key={i} style={{ background:"rgba(154,229,171,0.07)", borderRadius:4, padding:"3px 6px" }}>
+        <div key={i} style={{ background:"rgba(125,211,252,0.07)", borderRadius:4, padding:"3px 6px" }}>
           <div style={{ fontSize:6, color:"#6b7280" }}>{["Stocks","NFT","Coin","F&O"][i]}</div>
-          <div style={{ fontSize:9, color:"#9ae5ab", fontWeight:700 }}>{v}</div>
+          <div style={{ fontSize:9, color:"#7dd3fc", fontWeight:700 }}>{v}</div>
         </div>
       ))}
     </div>
@@ -159,8 +159,8 @@ const PortfolioContent = () => (
 const NiftyContent = () => (
   <div style={{ padding:"10px 10px 8px", height:"100%", boxSizing:"border-box" }}>
     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:3 }}>
-      <div style={{ fontSize:8, color:"#c6f6d5", fontWeight:700, letterSpacing:1 }}>NIFTY 50</div>
-      <span style={{ fontSize:7, background:"rgba(154,229,171,0.15)", color:"#9ae5ab", borderRadius:3, padding:"1px 5px" }}>▲ +1.24%</span>
+      <div style={{ fontSize:8, color:"#bae6fd", fontWeight:700, letterSpacing:1 }}>NIFTY 50</div>
+      <span style={{ fontSize:7, background:"rgba(125,211,252,0.15)", color:"#7dd3fc", borderRadius:3, padding:"1px 5px" }}>▲ +1.24%</span>
     </div>
     <div style={{ fontSize:15, fontWeight:800, color:"#f0fdf4", marginBottom:1 }}>22,419</div>
     <MiniLine id="niftyG"
@@ -171,8 +171,8 @@ const NiftyContent = () => (
         <div key={ex} style={{ fontSize:6, color:"#6b7280", background:"rgba(255,255,255,0.04)", padding:"2px 4px", borderRadius:3 }}>{ex}</div>
       ))}
     </div>
-    <div style={{ marginTop:6, padding:"5px 7px", background:"rgba(154,229,171,0.08)", borderRadius:5, borderLeft:"2px solid #9ae5ab" }}>
-      <div style={{ fontSize:7, color:"#c6f6d5", fontWeight:600 }}>Nifty Fund Analysis</div>
+    <div style={{ marginTop:6, padding:"5px 7px", background:"rgba(125,211,252,0.08)", borderRadius:5, borderLeft:"2px solid #7dd3fc" }}>
+      <div style={{ fontSize:7, color:"#bae6fd", fontWeight:600 }}>Nifty Fund Analysis</div>
       <div style={{ fontSize:6, color:"#6b7280", marginTop:1 }}>Top performer: HDFC Nifty 50 ETF</div>
     </div>
   </div>
@@ -180,20 +180,20 @@ const NiftyContent = () => (
 
 const MutualContent = () => (
   <div style={{ padding:"10px 10px 8px", height:"100%", boxSizing:"border-box" }}>
-    <div style={{ fontSize:8, color:"#c6f6d5", fontWeight:700, letterSpacing:1, marginBottom:5 }}>MUTUAL FUND ANALYSIS</div>
-    <MiniLine id="mfG" color="#a0f3c5"
+    <div style={{ fontSize:8, color:"#bae6fd", fontWeight:700, letterSpacing:1, marginBottom:5 }}>MUTUAL FUND ANALYSIS</div>
+    <MiniLine id="mfG" color="#7dd3fc"
       path="M0,40 C30,34 55,28 80,20 C105,13 125,18 155,10 C168,7 175,6 180,5"
       fillPath="M0,40 C30,34 55,28 80,20 C105,13 125,18 155,10 C168,7 175,6 180,5 L180,46 L0,46Z"/>
     <div style={{ display:"flex", justifyContent:"space-between", marginTop:4 }}>
-      <span style={{ fontSize:7, color:"#9ca3af" }}>Performance vs <span style={{ color:"#9ae5ab" }}>Nifty 15</span></span>
-      <span style={{ fontSize:8, color:"#9ae5ab", fontWeight:700 }}>+18.4%</span>
+      <span style={{ fontSize:7, color:"#9ca3af" }}>Performance vs <span style={{ color:"#7dd3fc" }}>Nifty 15</span></span>
+      <span style={{ fontSize:8, color:"#7dd3fc", fontWeight:700 }}>+18.4%</span>
     </div>
     <div style={{ display:"flex", gap:6, marginTop:7 }}>
       {[["Top Gain","Axis BF","▲31%"],["Lowest","SBI Cons","▲9%"]].map(([l,n,v],i)=>(
-        <div key={i} style={{ flex:1, background:"rgba(154,229,171,0.06)", borderRadius:5, padding:"4px 6px" }}>
+        <div key={i} style={{ flex:1, background:"rgba(125,211,252,0.06)", borderRadius:5, padding:"4px 6px" }}>
           <div style={{ fontSize:6, color:"#6b7280" }}>{l}</div>
           <div style={{ fontSize:7, color:"#e2e8f0", fontWeight:600 }}>{n}</div>
-          <div style={{ fontSize:8, color:"#9ae5ab" }}>{v}</div>
+          <div style={{ fontSize:8, color:"#7dd3fc" }}>{v}</div>
         </div>
       ))}
     </div>
@@ -202,7 +202,7 @@ const MutualContent = () => (
 
 const AIContent = () => (
   <div style={{ padding:"10px 10px 8px", height:"100%", boxSizing:"border-box" }}>
-    <div style={{ fontSize:8, color:"#c6f6d5", fontWeight:700, letterSpacing:1, marginBottom:6 }}>AI RECOMMENDATIONS</div>
+    <div style={{ fontSize:8, color:"#bae6fd", fontWeight:700, letterSpacing:1, marginBottom:6 }}>AI RECOMMENDATIONS</div>
     {[
       ["Parag Parikh Flexi Cap","MULTI CAP","+24.3%"],
       ["ICICI Pru Technology","SECTORAL","+31.1%"],
@@ -212,14 +212,14 @@ const AIContent = () => (
       <div key={i} style={{
         display:"flex", justifyContent:"space-between", alignItems:"center",
         padding:"4px 6px", marginBottom:3,
-        background:"rgba(154,229,171,0.05)",
-        borderRadius:5, borderLeft:`2px solid rgba(154,229,171,${0.25+i*0.12})`
+        background:"rgba(125,211,252,0.05)",
+        borderRadius:5, borderLeft:`2px solid rgba(125,211,252,${0.25+i*0.12})`
       }}>
         <div>
           <div style={{ fontSize:7.5, color:"#e2e8f0", fontWeight:600, maxWidth:115, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{name}</div>
           <div style={{ fontSize:6, color:"#4b5563" }}>{tag}</div>
         </div>
-        <div style={{ fontSize:9, color:"#9ae5ab", fontWeight:700 }}>{ret}</div>
+        <div style={{ fontSize:9, color:"#7dd3fc", fontWeight:700 }}>{ret}</div>
       </div>
     ))}
   </div>
@@ -258,9 +258,9 @@ function Connectors({ cx, cy, firing, centreGlow }: {
         {pts.map((_,i) => (
           <linearGradient key={i} id={`trail${i}`} gradientUnits="userSpaceOnUse"
             x1={ox + pts[i].x} y1={oy + pts[i].y} x2={ox} y2={oy}>
-            <stop offset="0%"   stopColor="#9ae5ab" stopOpacity="0"/>
-            <stop offset="55%"  stopColor="#9ae5ab" stopOpacity="0.85"/>
-            <stop offset="100%" stopColor="#c6f6d5" stopOpacity="1"/>
+            <stop offset="0%"   stopColor="#7dd3fc" stopOpacity="0"/>
+            <stop offset="55%"  stopColor="#7dd3fc" stopOpacity="0.85"/>
+            <stop offset="100%" stopColor="#bae6fd" stopOpacity="1"/>
           </linearGradient>
         ))}
       </defs>
@@ -269,13 +269,13 @@ function Connectors({ cx, cy, firing, centreGlow }: {
       {pts.map((p,i) => (
         <line key={i}
           x1={ox} y1={oy} x2={ox+p.x} y2={oy+p.y}
-          stroke="rgba(154,229,171,0.15)" strokeWidth={1} strokeDasharray="5 5"
+          stroke="rgba(125,211,252,0.15)" strokeWidth={1} strokeDasharray="5 5"
         />
       ))}
 
       {/* endpoint dots */}
       {pts.map((p,i) => (
-        <circle key={i} cx={ox+p.x} cy={oy+p.y} r={3} fill="rgba(154,229,171,0.4)"/>
+        <circle key={i} cx={ox+p.x} cy={oy+p.y} r={3} fill="rgba(125,211,252,0.4)"/>
       ))}
 
       {/* animated glowing trails + orbs */}
@@ -308,7 +308,7 @@ function Connectors({ cx, cy, firing, centreGlow }: {
                 keyTimes="0;0.05;0.92;1" dur={dur} begin={delay} fill="freeze"/>
             </circle>
             {/* soft halo orb */}
-            <circle r={12} fill="#9ae5ab" filter="url(#ballGlow)" opacity="0">
+            <circle r={12} fill="#7dd3fc" filter="url(#ballGlow)" opacity="0">
               <animateMotion dur={dur} begin={delay} fill="freeze" calcMode="linear"
                 path={`M${x1},${y1} L${x2},${y2}`}/>
               <animate attributeName="opacity" values="0;0.25;0.25;0"
@@ -320,11 +320,11 @@ function Connectors({ cx, cy, firing, centreGlow }: {
 
       {/* centre hub */}
       {!centreGlow && (
-        <circle cx={ox} cy={oy} r={6} fill="rgba(154,229,171,0.65)" filter="url(#glow)"/>
+            <circle cx={ox} cy={oy} r={6} fill="rgba(125,211,252,0.65)" filter="url(#glow)"/>
       )}
       {centreGlow && (
         <>
-          <circle cx={ox} cy={oy} r={28} fill="rgba(154,229,171,0.10)" filter="url(#centreGlowF)"
+          <circle cx={ox} cy={oy} r={28} fill="rgba(125,211,252,0.10)" filter="url(#centreGlowF)"
             style={{ animation:"centreBurst 0.8s ease-out forwards" }}/>
           <circle cx={ox} cy={oy} r={11} fill="rgba(198,246,213,0.95)" filter="url(#ballGlow)"
             style={{ animation:"centreBurst 0.8s ease-out forwards" }}/>
@@ -374,7 +374,7 @@ function WatchlistSection() {
   }, []);
 
   return (
-    <div style={{ padding: "20px", background: "rgba(12, 26, 18, 0.6)", border: "1px solid rgba(154, 229, 171, 0.2)", borderRadius: "8px" }}>
+    <div style={{ padding: "20px", background: "rgba(13,20,35,0.6)", border: "1px solid rgba(125, 211, 252, 0.2)", borderRadius: "8px" }}>
       <h3 style={{ fontSize: "14px", color: "#f0fdf4", fontWeight: "700", marginBottom: "12px" }}>Tracked Stocks</h3>
 
       {error ? (
@@ -384,19 +384,19 @@ function WatchlistSection() {
             onClick={fetchStocks}
             style={{
               padding: "6px 12px",
-              background: "rgba(154, 229, 171, 0.2)",
-              border: "1px solid rgba(154, 229, 171, 0.4)",
+              background: "rgba(125, 211, 252, 0.2)",
+              border: "1px solid rgba(125, 211, 252, 0.4)",
               borderRadius: "4px",
-              color: "#9ae5ab",
+              color: "#7dd3fc",
               fontSize: "12px",
               cursor: "pointer",
               transition: "all 0.2s",
             }}
             onMouseOver={(e) => {
-              (e.target as any).style.background = "rgba(154, 229, 171, 0.3)";
+              (e.target as any).style.background = "rgba(125, 211, 252, 0.3)";
             }}
             onMouseOut={(e) => {
-              (e.target as any).style.background = "rgba(154, 229, 171, 0.2)";
+              (e.target as any).style.background = "rgba(125, 211, 252, 0.2)";
             }}
           >
             Retry
@@ -420,11 +420,11 @@ function WatchlistSection() {
                 justifyContent: "space-between",
                 alignItems: "center",
                 padding: "12px 10px",
-                borderBottom: "1px solid rgba(154, 229, 171, 0.1)",
+                borderBottom: "1px solid rgba(125, 211, 252, 0.1)",
                 transition: "background 0.2s",
               }}
               onMouseOver={(e) => {
-                (e.currentTarget as any).style.background = "rgba(154, 229, 171, 0.05)";
+                (e.currentTarget as any).style.background = "rgba(125, 211, 252, 0.05)";
               }}
               onMouseOut={(e) => {
                 (e.currentTarget as any).style.background = "transparent";
@@ -546,7 +546,7 @@ export default function EtRadarBrain3D() {
       className="scene-3d"
       style={{
         width:"100%", minHeight:"100vh",
-        background:"radial-gradient(ellipse at 35% 50%, #0f2e22 0%, #051009 45%, #020805 100%)",
+        background:"radial-gradient(ellipse at 35% 50%, #0f2a4a 0%, #0a0f1c 45%, #020805 100%)",
         display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-start",
         fontFamily:"'DM Sans',sans-serif",
         overflow:"hidden", position:"relative",
@@ -556,13 +556,13 @@ export default function EtRadarBrain3D() {
 
       {/* grid bg */}
       <div style={{ position:"absolute",inset:0,pointerEvents:"none",
-        backgroundImage:"linear-gradient(rgba(154,229,171,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(154,229,171,0.025) 1px,transparent 1px)",
+        backgroundImage:"linear-gradient(rgba(125,211,252,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(125,211,252,0.025) 1px,transparent 1px)",
         backgroundSize:"44px 44px"
       }}/>
       {/* green ambient glow */}
       <div style={{ position:"absolute",left:"50%",top:"50%",transform:"translate(-50%,-50%)",
         width:600,height:400,
-        background:"radial-gradient(ellipse,rgba(154,229,171,0.10) 0%,transparent 70%)",
+        background:"radial-gradient(ellipse,rgba(125,211,252,0.10) 0%,transparent 70%)",
         pointerEvents:"none"
       }}/>
 
@@ -575,11 +575,11 @@ export default function EtRadarBrain3D() {
         {/* ── LEFT TEXT ── */}
         <div style={{ zIndex:10 }}>
           <div style={{ display:"inline-flex",alignItems:"center",gap:6,
-            background:"rgba(154,229,171,0.08)",border:"1px solid rgba(154,229,171,0.2)",
+            background:"rgba(125,211,252,0.08)",border:"1px solid rgba(125,211,252,0.2)",
             borderRadius:20,padding:"4px 12px",marginBottom:18
           }}>
-            <div style={{ width:6,height:6,borderRadius:"50%",background:"#9ae5ab",boxShadow:"0 0 8px #9ae5ab" }}/>
-            <span style={{ fontSize:10,color:"#c6f6d5",letterSpacing:1.5,fontWeight:700 }}>AI-POWERED WEALTH</span>
+            <div style={{ width:6,height:6,borderRadius:"50%",background:"#7dd3fc",boxShadow:"0 0 8px #7dd3fc" }}/>
+            <span style={{ fontSize:10,color:"#bae6fd",letterSpacing:1.5,fontWeight:700 }}>AI-POWERED WEALTH</span>
           </div>
 
           <h1 style={{
@@ -589,7 +589,7 @@ export default function EtRadarBrain3D() {
             transition:"all .7s ease"
           }}>
             Master Your Wealth.<br/>
-            <span style={{ color:"#9ae5ab" }}>Our AI</span> is Your<br/>
+            <span style={{ color:"#7dd3fc" }}>Our AI</span> is Your<br/>
             Personalized<br/>Investment Brain.
           </h1>
 
@@ -615,9 +615,9 @@ export default function EtRadarBrain3D() {
                 padding:"11px 24px", borderRadius:30, cursor:"pointer",
                 fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:600,
                 background:"transparent",
-                border:`1.5px solid ${primary?"#9ae5ab":"rgba(255,255,255,0.15)"}`,
-                color: primary?"#9ae5ab":"#9ca3af",
-                boxShadow: primary?"0 0 20px rgba(154,229,171,0.15)":"none",
+                border:`1.5px solid ${primary?"#7dd3fc":"rgba(255,255,255,0.15)"}`,
+                color: primary?"#7dd3fc":"#9ca3af",
+                boxShadow: primary?"0 0 20px rgba(125,211,252,0.15)":"none",
                 transition:"all .25s"
               }}>
                 {label}
@@ -663,7 +663,7 @@ export default function EtRadarBrain3D() {
                     faceColor="rgba(12,26,18,0.97)"
                     topColor="rgba(20,52,32,0.97)"
                     sideColor="rgba(5,15,9,0.97)"
-                    borderColor="rgba(154,229,171,0.2)"
+                    borderColor="rgba(125,211,252,0.2)"
                   >
                     {c.content}
                   </Cuboid>
@@ -692,7 +692,7 @@ export default function EtRadarBrain3D() {
                   faceColor="rgba(10,32,22,0.98)"
                   topColor="rgba(28,72,42,0.98)"
                   sideColor="rgba(5,16,11,0.98)"
-                  borderColor="rgba(154,229,171,0.45)"
+                  borderColor="rgba(125,211,252,0.45)"
                 >
                   {/* Front face content */}
                   <div style={{
@@ -705,20 +705,20 @@ export default function EtRadarBrain3D() {
                     <div style={{
                       width:38, height:38, borderRadius:"50%",
                       background:"radial-gradient(circle at 35% 35%, #1e5a30, #061209)",
-                      border:`1.5px solid rgba(154,229,171,${centreGlow ? 1 : 0.6})`,
+                      border:`1.5px solid rgba(125,211,252,${centreGlow ? 1 : 0.6})`,
                       boxShadow: centreGlow
-                        ? "0 0 50px rgba(154,229,171,0.95), 0 0 100px rgba(154,229,171,0.5), inset 0 0 20px rgba(154,229,171,0.4)"
-                        : "0 0 22px rgba(154,229,171,0.45), inset 0 0 12px rgba(154,229,171,0.15)",
+                        ? "0 0 50px rgba(125,211,252,0.95), 0 0 100px rgba(125,211,252,0.5), inset 0 0 20px rgba(125,211,252,0.4)"
+                        : "0 0 22px rgba(125,211,252,0.45), inset 0 0 12px rgba(125,211,252,0.15)",
                       display:"flex", alignItems:"center", justifyContent:"center",
-                      fontSize:18, color: centreGlow ? "#ffffff" : "#9ae5ab", fontWeight:800,
+                      fontSize:18, color: centreGlow ? "#ffffff" : "#7dd3fc", fontWeight:800,
                       flexShrink:0,
                       transition:"box-shadow 0.3s ease, color 0.3s ease, border-color 0.3s ease",
                       animation:"cubePulse 3s ease-in-out infinite",
                     }}>₹</div>
                     {/* Label */}
                     <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
-                      <div style={{ fontSize:13, color:"#c6f6d5", fontWeight:800, letterSpacing:1, lineHeight:1 }}>ET</div>
-                      <div style={{ fontSize:13, color:"#c6f6d5", fontWeight:800, letterSpacing:1, lineHeight:1 }}>Radar</div>
+                      <div style={{ fontSize:13, color:"#bae6fd", fontWeight:800, letterSpacing:1, lineHeight:1 }}>ET</div>
+                      <div style={{ fontSize:13, color:"#bae6fd", fontWeight:800, letterSpacing:1, lineHeight:1 }}>Radar</div>
                     </div>
                   </div>
                 </Cuboid>
@@ -727,7 +727,7 @@ export default function EtRadarBrain3D() {
                 <div style={{
                   position:"absolute",
                   bottom:-20, left:"15%", width:"70%", height:16,
-                  background:"rgba(154,229,171,0.18)",
+                  background:"rgba(125,211,252,0.18)",
                   borderRadius:"50%", filter:"blur(12px)",
                   transform:"translateZ(-30px)",
                   pointerEvents:"none",
@@ -762,8 +762,8 @@ export default function EtRadarBrain3D() {
 
       <style>{`
         @keyframes cubePulse {
-          0%,100% { box-shadow: 0 0 18px rgba(154,229,171,0.3); }
-          50%      { box-shadow: 0 0 32px rgba(154,229,171,0.55), 0 0 60px rgba(154,229,171,0.15); }
+          0%,100% { box-shadow: 0 0 18px rgba(125,211,252,0.3); }
+          50%      { box-shadow: 0 0 32px rgba(125,211,252,0.55), 0 0 60px rgba(125,211,252,0.15); }
         }
         @keyframes dashFlow {
           from { stroke-dashoffset: 600; }

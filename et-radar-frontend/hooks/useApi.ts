@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import api from '@/lib/api'
 
 type UseApiOptions<T> = {
@@ -23,6 +23,11 @@ export function useApi<T>(
   const pollInterval = options?.pollInterval
   const fallback = options?.fallback
   const enabled = options?.enabled ?? true
+  const fallbackRef = useRef<T | undefined>(fallback)
+
+  useEffect(() => {
+    fallbackRef.current = fallback
+  }, [fallback])
 
   const [data, setData] = useState<T | null>(fallback ?? null)
   const [loading, setLoading] = useState<boolean>(enabled)
@@ -45,8 +50,8 @@ export function useApi<T>(
         err?.message ||
         'Request failed'
 
-      if (fallback !== undefined) {
-        setData(fallback)
+      if (fallbackRef.current !== undefined) {
+        setData(fallbackRef.current)
         setError(null)
       } else {
         setError(String(detail))
@@ -54,7 +59,7 @@ export function useApi<T>(
     } finally {
       setLoading(false)
     }
-  }, [enabled, fallback, url])
+  }, [enabled, url])
 
   useEffect(() => {
     fetchData()

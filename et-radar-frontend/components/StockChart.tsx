@@ -41,9 +41,9 @@ export default function StockChart({ data }: { data: any[] }) {
         chartRef.current = chart
 
         const candleSeries = chart.addCandlestickSeries({
-            upColor: '#00c076', downColor: '#ef4444',
-            borderUpColor: '#00c076', borderDownColor: '#ef4444',
-            wickUpColor: '#00c076', wickDownColor: '#ef4444'
+            upColor: '#22c55e', downColor: '#ef4444',
+            borderUpColor: '#22c55e', borderDownColor: '#ef4444',
+            wickUpColor: '#22c55e', wickDownColor: '#ef4444'
         } as any)
         candleSeriesRef.current = candleSeries
 
@@ -98,7 +98,7 @@ export default function StockChart({ data }: { data: any[] }) {
         const volumeData = filteredData.map(d => ({
             time: d.date,
             value: d.volume,
-            color: d.close >= d.open ? '#00c07640' : '#ef444440'
+            color: d.close >= d.open ? '#22c55e40' : '#ef444440'
         }))
 
         candleSeriesRef.current.setData(candleData as any)

@@ -82,7 +82,7 @@ export default function Navbar() {
       <button
         type="button"
         onClick={() => setMenuOpen((v) => !v)}
-        className="w-8 h-8 rounded-full bg-green-600/20 border border-green-500/30 flex items-center justify-center text-green-400 font-semibold text-sm"
+        className="w-8 h-8 rounded-full bg-sky-600/20 border border-sky-500/30 flex items-center justify-center text-sky-300 font-semibold text-sm"
         aria-label="Open user menu"
       >
         {initial}
@@ -107,7 +107,7 @@ export default function Navbar() {
     <button
       type="button"
       onClick={() => router.push('/auth')}
-      className="text-sm px-3 py-1.5 rounded-lg border border-border text-slate-300 hover:border-green-500/50 hover:text-white transition-colors"
+      className="text-sm px-3 py-1.5 rounded-lg border border-border text-slate-300 hover:border-sky-500/50 hover:text-white transition-colors"
     >
       Sign In
     </button>
@@ -119,7 +119,7 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-full">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center">
-              <div className="w-7 h-7 bg-green-600 rounded-md flex items-center justify-center text-white font-bold text-sm">E</div>
+              <div className="w-7 h-7 bg-sky-600 rounded-md flex items-center justify-center text-white font-bold text-sm">E</div>
               <span className="text-content-primary font-semibold text-base ml-2">ET Radar</span>
             </Link>
 
@@ -166,7 +166,7 @@ export default function Navbar() {
           >
             <div className="h-14 px-4 border-b border-border flex items-center justify-between">
               <Link href="/" className="flex items-center" onClick={() => setDrawerOpen(false)}>
-                <div className="w-7 h-7 bg-green-600 rounded-md flex items-center justify-center text-white font-bold text-sm">E</div>
+                <div className="w-7 h-7 bg-sky-600 rounded-md flex items-center justify-center text-white font-bold text-sm">E</div>
                 <span className="text-content-primary font-semibold text-base ml-2">ET Radar</span>
               </Link>
               <button
@@ -210,7 +210,7 @@ export default function Navbar() {
                     setDrawerOpen(false)
                     router.push('/auth')
                   }}
-                  className="w-full bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors"
+                  className="w-full bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors"
                 >
                   Sign In
                 </button>
