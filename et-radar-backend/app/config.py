@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
     CELERY_BROKER_URL: str
     CELERY_RESULT_BACKEND: str
+    SECRET_KEY: str = "et-radar-secret-dev-key-change-in-production"
 
     @property
     def symbols_list(self) -> list[str]:

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
 from app.database import AsyncSessionLocal, get_db
-from app.models.tables import BSEFiling, Signal, Stock
+from app.models.tables import BSEFiling, Filing, Signal, Stock
 
 router = APIRouter(prefix="/api/filings", tags=["filings"])
 
@@ -45,8 +45,31 @@ class FilingRowOut(BaseModel):
     action_hint: Optional[str]
 
 
+class LatestFilingOut(BaseModel):
+    id: int
+    date: str
+    category: str
+    headline: str
+    source_url: Optional[str]
+    stock_symbol: Optional[str]
+    stock_name: Optional[str]
+
+
 def _headline(raw_text: str) -> str:
     return (raw_text or "")[:120]
+
+
+def format_filing(f: Filing, stocks_by_id: dict[int, Stock]) -> LatestFilingOut:
+    stock = stocks_by_id.get(f.stock_id) if f.stock_id else None
+    return LatestFilingOut(
+        id=f.id,
+        date=f.date.isoformat(),
+        category=f.category,
+        headline=_headline(f.raw_text),
+        source_url=f.source_url,
+        stock_symbol=stock.symbol if stock else None,
+        stock_name=stock.name if stock else None,
+    )
 
 
 def _serialize_row(f: BSEFiling) -> FilingRowOut:
@@ -101,39 +124,36 @@ async def _insert_dummy_filings() -> None:
         await db.commit()
 
 
-@router.get("/latest", response_model=list[FilingRowOut])
+@router.get("/latest", response_model=list[LatestFilingOut])
 async def get_latest_filings(
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(20, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(BSEFiling)
-        .order_by(desc(BSEFiling.published_at))
+        select(Filing)
+        .order_by(desc(Filing.date))
         .limit(limit)
     )
-    rows = result.scalars().all()
+    filings = result.scalars().all()
 
-    # Avoid lazy-load in async context by fetching related data in bulk.
-    stock_ids = {r.stock_id for r in rows if r.stock_id is not None}
-    signal_ids = {r.signal_id for r in rows if r.signal_id is not None}
+    if not filings:
+        try:
+            from app.tasks.fetch_filings import _fetch_filings_async
+            await _fetch_filings_async()
+            result = await db.execute(
+                select(Filing).order_by(desc(Filing.date)).limit(limit)
+            )
+            filings = result.scalars().all()
+        except Exception as e:
+            print(f"Auto-fetch failed: {e}")
 
-    stocks_by_id = {}
+    stock_ids = {f.stock_id for f in filings if f.stock_id is not None}
+    stocks_by_id: dict[int, Stock] = {}
     if stock_ids:
         srows = (await db.execute(select(Stock).where(Stock.id.in_(stock_ids)))).scalars().all()
         stocks_by_id = {s.id: s for s in srows}
 
-    signals_by_id = {}
-    if signal_ids:
-        sig_rows = (await db.execute(select(Signal).where(Signal.id.in_(signal_ids)))).scalars().all()
-        signals_by_id = {s.id: s for s in sig_rows}
-
-    payload: list[FilingRowOut] = []
-    for r in rows:
-        r.stock = stocks_by_id.get(r.stock_id) if r.stock_id else None
-        r.signal = signals_by_id.get(r.signal_id) if r.signal_id else None
-        payload.append(_serialize_row(r))
-
-    return payload
+    return [format_filing(f, stocks_by_id) for f in filings]
 
 
 @router.post("/refresh")

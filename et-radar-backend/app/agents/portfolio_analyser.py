@@ -105,6 +105,13 @@ def parse_pdf_statement(pdf_bytes: bytes) -> tuple[str, list[dict]]:
     for match in fund_pattern.finditer(full_text[:8000]):
         try:
             fund_name = match.group(1).strip()
+            
+            # Filter out invalid fund names
+            if any(invalid in fund_name for invalid in ["$", "USD", "Russell", "Growth of"]):
+                continue
+            if len(fund_name) < 5 or fund_name.replace(" ", "").isdigit():
+                continue
+            
             units = float(match.group(2).replace(",", ""))
             nav = float(match.group(3).replace(",", ""))
             value = float(match.group(4).replace(",", ""))
@@ -291,6 +298,21 @@ async def analyse_mutual_fund_pdf(
             detail="Could not parse PDF - ensure it is a CAMS or KFintech statement"
         )
 
+    # Validate that this is an Indian MF statement
+    indian_keywords = ['ISIN', 'Folio', 'NAV', 'Units', 'SIP',
+                       'CAMS', 'KFintech', 'Karvy', 'AMFI',
+                       'Mutual Fund', 'Scheme']
+    keyword_count = sum(1 for kw in indian_keywords
+                        if kw.lower() in full_text.lower())
+    
+    if keyword_count < 2:
+        raise HTTPException(
+            status_code=400,
+            detail="This does not appear to be a CAMS or KFintech statement. "
+                   "Please upload an Indian mutual fund consolidated statement. "
+                   "Download it from camsonline.com or kfintech.com"
+        )
+
     # If no funds found, use Groq fallback
     if not funds:
         try:
@@ -298,10 +320,13 @@ async def analyse_mutual_fund_pdf(
         except Exception:
             funds = []
 
+    # Validate minimum funds
     if not funds:
         raise HTTPException(
             status_code=400,
-            detail="Could not parse PDF - ensure it is a CAMS or KFintech statement"
+            detail="Could not extract fund data from this PDF. "
+                   "Ensure it is a text-based CAMS or KFintech statement "
+                   "and not a scanned image."
         )
 
     # Calculate totals

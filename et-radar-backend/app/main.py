@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
-from app.routes import stocks, signals, patterns, portfolio, chat, status, filings, demo
+from app.routes import stocks, signals, patterns, portfolio, chat, status, filings, demo, auth
 
 
 @asynccontextmanager
@@ -104,4 +104,5 @@ app.include_router(portfolio.router)
 app.include_router(chat.router)
 app.include_router(status.router)
 app.include_router(filings.router)
+app.include_router(auth.router)
 app.include_router(demo.router)
