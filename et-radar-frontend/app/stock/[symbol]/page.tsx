@@ -22,8 +22,27 @@ function formatPattern(p: string): string {
     'death_cross': 'Death Cross',
     'rsi_bounce': 'RSI Bounce',
     'support_bounce': 'Support Bounce',
+    'bullish_trapezoid': 'Bullish Trapezoid',
   }
   return map[p] || p
+}
+
+const PATTERN_EXPLANATIONS: Record<string, string> = {
+  '52W Breakout': 'Price broke above its 52-week high. Historically signals strong upward momentum as resistance becomes support.',
+  'Golden Cross': 'The 50-day moving average crossed above the 200-day average. A classic bullish signal used by institutional traders.',
+  'Death Cross': 'The 50-day moving average crossed below the 200-day average. Indicates potential downtrend - institutions often reduce exposure.',
+  'RSI Bounce': 'RSI dropped below 30 (oversold) then recovered. Suggests selling pressure is exhausted and a reversal may be near.',
+  'Support Bounce': 'Price touched a key historical support level and bounced. Strong support levels attract buyers and limit downside.',
+  'Bullish Trapezoid': 'Price is forming higher lows with a flat resistance ceiling - a compression pattern that often resolves upward.',
+}
+
+const ACTIONABLE_ADVICE: Record<string, string> = {
+  '52W Breakout': 'Consider watching for a retest of the breakout level before entering. Set stop-loss below the 52-week high level.',
+  'Golden Cross': 'This is a medium-to-long term bullish signal. Best combined with strong fundamentals before taking a position.',
+  'Death Cross': 'Risk management is key. If you hold this stock, consider tightening your stop-loss levels.',
+  'RSI Bounce': 'Short-term traders may find an entry here. Confirm with volume - a bounce on high volume is more reliable.',
+  'Support Bounce': 'Support levels are more reliable when tested multiple times. Check if volume increased on the bounce.',
+  'Bullish Trapezoid': 'Wait for a confirmed breakout above the resistance ceiling with volume before entering.',
 }
 
 export default function StockDetail() {
@@ -247,36 +266,41 @@ export default function StockDetail() {
                 {patterns.map((p, i) => (
                   <div
                     key={i}
-                    className={`bg-[#161b22] border border-[#30363d] rounded-xl p-5 border-l-4 ${
-                      p.pattern_name === 'death_cross' ? 'border-l-red-500' : 'border-l-green-500'
+                    onClick={() =>
+                      router.push(
+                        `/chat?q=${encodeURIComponent(`Explain the ${formatPattern(p.pattern_name)} pattern on ${symbol} and what I should do`)}`
+                      )
+                    }
+                    className={`bg-[#161b22] border border-[#30363d] rounded-xl p-5 border-l-4 cursor-pointer transition-all hover:border-[#3b82f6] ${
+                      p.detected_today
+                        ? 'border-l-[#22c55e] shadow-[0_0_0_1px_rgba(34,197,94,0.35),0_0_24px_rgba(34,197,94,0.15)]'
+                        : p.pattern_name === 'death_cross'
+                          ? 'border-l-red-500'
+                          : 'border-l-green-500/60'
                     }`}
                   >
                     <div className="flex justify-between items-start">
                       <h4 className="text-white font-semibold text-base">{formatPattern(p.pattern_name)}</h4>
                       {p.detected_today ? (
-                        <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                          Active Today
+                        <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: '#166534', color: '#86efac' }}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#86efac] animate-pulse" />
+                          Active
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-[#21262d] text-slate-500 border border-[#30363d]">
+                        <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full" style={{ backgroundColor: '#1f2937', color: '#6b7280' }}>
                           <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
                           Not Active
                         </span>
                       )}
                     </div>
-                    {!p.explanation || p.explanation.trim() === '' || p.explanation.startsWith('Insufficient') ? (
-                      <p className="text-slate-500 text-sm mt-3 italic">
-                        Analysis available once pattern is detected
-                      </p>
-                    ) : (
-                      <p className="text-slate-300 text-sm mt-3 leading-relaxed">
-                        {p.explanation}
-                      </p>
-                    )}
-                    {p.backtest.occurrences === 0 ? (
-                      <p className="text-slate-600 text-xs mt-3">
-                        Back-test data not yet available
+
+                    <p className="text-[#9ca3af] text-[13px] mt-2 leading-relaxed">
+                      {PATTERN_EXPLANATIONS[formatPattern(p.pattern_name)] || 'Pattern detected from recent price action and technical setup.'}
+                    </p>
+
+                    {p.backtest.occurrences < 3 || p.backtest.success_rate === 0 ? (
+                      <p className="text-[#9ca3af] text-xs mt-4 italic">
+                        📊 Fewer than 3 historical occurrences - not enough data for reliable backtest
                       </p>
                     ) : (
                       <div className="grid grid-cols-3 gap-3 mt-4">
@@ -302,6 +326,22 @@ export default function StockDetail() {
                         </div>
                       </div>
                     )}
+
+                    {p.detected_today && (
+                      <div
+                        className="mt-4 rounded-md px-3.5 py-2.5"
+                        style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}
+                      >
+                        <p className="text-[#60a5fa] text-xs font-bold">💡 What to watch:</p>
+                        <p className="text-[#9ca3af] text-[13px] mt-1 leading-relaxed">
+                          {ACTIONABLE_ADVICE[formatPattern(p.pattern_name)] || 'Track volume and confirmation before taking any action.'}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="mt-4 flex justify-end">
+                      <span className="text-xs text-blue-300/80 hover:text-blue-200">Ask AI →</span>
+                    </div>
                   </div>
                 ))}
               </div>

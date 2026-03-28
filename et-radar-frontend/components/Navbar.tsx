@@ -10,8 +10,9 @@ import { useToast } from '@/context/ToastContext'
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Filings', href: '/filings' },
-  { label: 'Portfolio', href: '/portfolio' },
-  { label: 'AI Chat', href: '/chat' },
+  { label: 'Portfolio', href: '/portfolio', id: 'portfolio-nav' },
+  { label: 'AI Chat', href: '/chat', id: 'ai-chat-nav' },
+  { label: '📺 Market Video', href: '/video' },
 ]
 
 function isActivePath(currentPath: string, href: string): boolean {
@@ -19,10 +20,11 @@ function isActivePath(currentPath: string, href: string): boolean {
   return currentPath === href || currentPath.startsWith(`${href}/`)
 }
 
-function NavItem({ href, label, currentPath, onClick }: { href: string; label: string; currentPath: string; onClick?: () => void }) {
+function NavItem({ href, label, currentPath, onClick, id }: { href: string; label: string; currentPath: string; onClick?: () => void; id?: string }) {
   const active = isActivePath(currentPath, href)
   return (
     <Link
+      id={id}
       href={href}
       onClick={onClick}
       className={[
@@ -137,7 +139,7 @@ export default function Navbar() {
 
           <div className="hidden md:flex items-center gap-1">
             {NAV_ITEMS.map((item) => (
-              <NavItem key={item.href} href={item.href} label={item.label} currentPath={pathname} />
+              <NavItem key={item.href} href={item.href} label={item.label} currentPath={pathname} id={item.id} />
             ))}
           </div>
 
@@ -187,6 +189,7 @@ export default function Navbar() {
                   label={item.label}
                   currentPath={pathname}
                   onClick={() => setDrawerOpen(false)}
+                  id={item.id}
                 />
               ))}
             </div>

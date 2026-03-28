@@ -5,6 +5,7 @@ asyncpg==0.30.0
 alembic==1.13.1
 redis==5.0.1
 celery==5.3.6
+eventlet==0.40.4
 httpx==0.26.0
 beautifulsoup4==4.12.3
 yfinance==0.2.40

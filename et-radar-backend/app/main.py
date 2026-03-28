@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
 from app.routes import stocks, signals, patterns, portfolio, chat, status, filings, demo, auth
+from app.routers import video
 
 
 @asynccontextmanager
@@ -106,3 +107,4 @@ app.include_router(status.router)
 app.include_router(filings.router)
 app.include_router(auth.router)
 app.include_router(demo.router)
+app.include_router(video.router)

@@ -3,11 +3,25 @@ import { useState, useEffect, useRef } from 'react'
 import { streamChat } from '@/lib/api'
 import { getSessionId } from '@/lib/session'
 
+const CHAT_STORAGE_KEY = 'et_radar_chat_v1'
+
 interface Message {
+  id: string
   role: 'user' | 'assistant'
   content: string
-  timestamp: Date
+  timestamp: string
   isError?: boolean
+  followUps?: string[]
+}
+
+interface ChatSession {
+  id: string
+  date: string
+  messages: Message[]
+}
+
+interface ChatStorage {
+  sessions: ChatSession[]
 }
 
 // Simple markdown formatter
@@ -25,64 +39,238 @@ function renderMarkdown(text: string) {
   return <div dangerouslySetInnerHTML={{ __html: html }} className="leading-relaxed" />
 }
 
+function makeId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+function dayKey(iso: string): string {
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function formatSessionDate(iso: string): string {
+  const d = new Date(iso)
+  const today = new Date()
+  const yesterday = new Date()
+  yesterday.setDate(today.getDate() - 1)
+  if (dayKey(iso) === dayKey(today.toISOString())) return 'Today'
+  if (dayKey(iso) === dayKey(yesterday.toISOString())) return 'Yesterday'
+  return d.toLocaleDateString('en-IN', { month: 'long', day: 'numeric' })
+}
+
+function groupMessagesByDate(rawSessions: ChatSession[]): ChatSession[] {
+  const all = rawSessions
+    .flatMap((s) => s.messages)
+    .filter((m) => m?.role && m?.content && m?.timestamp)
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+
+  const grouped: ChatSession[] = []
+  const byDay = new Map<string, number>()
+
+  for (const msg of all) {
+    const key = dayKey(msg.timestamp)
+    const idx = byDay.get(key)
+    if (idx === undefined) {
+      grouped.push({
+        id: `session-${key}-${makeId()}`,
+        date: msg.timestamp,
+        messages: [{ ...msg, id: msg.id || makeId() }],
+      })
+      byDay.set(key, grouped.length - 1)
+    } else {
+      grouped[idx].messages.push({ ...msg, id: msg.id || makeId() })
+    }
+  }
+
+  return grouped
+}
+
+function capSessions(sessions: ChatSession[]): ChatSession[] {
+  if (sessions.length <= 10) return sessions
+  return sessions.slice(sessions.length - 10)
+}
+
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([])
+  const [sessions, setSessions] = useState<ChatSession[]>([])
   const [streamingContent, setStreamingContent] = useState('')
+  const [streamingFollowUps, setStreamingFollowUps] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [showTyping, setShowTyping] = useState(false)
   const [input, setInput] = useState('')
   const [hasPortfolio, setHasPortfolio] = useState(false)
   const [includePortfolio, setIncludePortfolio] = useState(true)
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const allMessages = sessions.flatMap((s) => s.messages)
+
+  const persistSessions = (next: ChatSession[]) => {
+    const capped = capSessions(next)
+    setSessions(capped)
+    if (typeof window !== 'undefined') {
+      const payload: ChatStorage = { sessions: capped }
+      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(payload))
+    }
+  }
+
+  const appendMessage = (message: Message) => {
+    setSessions((prev) => {
+      const next = [...prev]
+      const msgDate = message.timestamp || new Date().toISOString()
+      const key = dayKey(msgDate)
+      const idx = next.findIndex((s) => dayKey(s.date) === key)
+
+      if (idx === -1) {
+        next.push({
+          id: `session-${key}-${makeId()}`,
+          date: msgDate,
+          messages: [message],
+        })
+      } else {
+        next[idx] = {
+          ...next[idx],
+          messages: [...next[idx].messages, message],
+        }
+      }
+
+      const capped = capSessions(next)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({ sessions: capped }))
+      }
+      return capped
+    })
+  }
+
+  const updateLastAssistantFollowUps = (followUps: string[]) => {
+    setSessions((prev) => {
+      const next = [...prev]
+      for (let i = next.length - 1; i >= 0; i--) {
+        const msgs = [...next[i].messages]
+        for (let j = msgs.length - 1; j >= 0; j--) {
+          if (msgs[j].role === 'assistant') {
+            msgs[j] = { ...msgs[j], followUps }
+            next[i] = { ...next[i], messages: msgs }
+            const capped = capSessions(next)
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({ sessions: capped }))
+            }
+            return capped
+          }
+        }
+      }
+      return prev
+    })
+  }
+
+  async function getFollowUps(lastResponse: string): Promise<string[]> {
+    try {
+      const res = await fetch('http://localhost:8000/api/chat/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Based on this answer: "${lastResponse.slice(0, 200)}", suggest 2 very short follow-up questions (max 8 words each) an Indian retail investor would ask. Return ONLY a JSON array: ["question 1", "question 2"] No explanation, no markdown.`,
+        }),
+      })
+      const data = await res.json()
+      try {
+        const parsed = JSON.parse(data.response)
+        return Array.isArray(parsed) ? parsed.slice(0, 2) : []
+      } catch {
+        return []
+      }
+    } catch {
+      return []
+    }
+  }
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('et_radar_portfolio')
       if (stored) setHasPortfolio(true)
+
+      const raw = localStorage.getItem(CHAT_STORAGE_KEY)
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw) as ChatStorage
+          const loaded = Array.isArray(parsed.sessions) ? parsed.sessions : []
+          const grouped = groupMessagesByDate(loaded)
+          persistSessions(grouped)
+        } catch {
+          persistSessions([])
+        }
+      }
     }
   }, [])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, streamingContent])
+  }, [sessions, streamingContent, showTyping])
+
+  const submitQuestion = (text: string) => {
+    setInput(text)
+    handleSubmit(text)
+  }
 
   const handleSubmit = async (text: string = input.trim()) => {
     if (!text || isLoading) return
     
     setInput('')
-    setMessages(prev => [...prev, {
-      role: 'user', content: text, timestamp: new Date()
-    }])
+    appendMessage({
+      id: makeId(),
+      role: 'user',
+      content: text,
+      timestamp: new Date().toISOString(),
+    })
     setIsLoading(true)
+    setShowTyping(true)
     setStreamingContent('')
+    setStreamingFollowUps([])
     
     try {
       let full = ''
+      let startedStreaming = false
       await streamChat(
         text,
         getSessionId(),
         includePortfolio,
         (token) => {
+          if (!startedStreaming) {
+            startedStreaming = true
+            setShowTyping(false)
+          }
           full += token
           setStreamingContent(full)
         },
-        () => {
-          setMessages(prev => [...prev, {
+        async () => {
+          const assistantMsg: Message = {
+            id: makeId(),
             role: 'assistant',
             content: full,
-            timestamp: new Date()
-          }])
+            timestamp: new Date().toISOString(),
+          }
+          appendMessage(assistantMsg)
+
+          const followUps = await getFollowUps(full)
+          if (followUps.length > 0) {
+            updateLastAssistantFollowUps(followUps)
+            setStreamingFollowUps(followUps)
+          }
+
           setStreamingContent('')
+          setShowTyping(false)
           setIsLoading(false)
         }
       )
     } catch (e) {
-      setMessages(prev => [...prev, {
+      appendMessage({
+        id: makeId(),
         role: 'assistant',
         content: 'AI is temporarily unavailable. Please try again.',
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
         isError: true
-      }])
+      })
+      setShowTyping(false)
       setIsLoading(false)
     }
   }
@@ -101,6 +289,26 @@ export default function ChatPage() {
     "Explain the biggest bulk deal today"
   ]
 
+  const clearHistory = () => {
+    const ok = window.confirm('Clear all chat history? This cannot be undone.')
+    if (!ok) return
+    localStorage.removeItem(CHAT_STORAGE_KEY)
+    setSessions([])
+    setStreamingContent('')
+    setIsLoading(false)
+    setShowTyping(false)
+  }
+
+  const handleCopy = async (messageId: string, content: string) => {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopiedMessageId(messageId)
+      setTimeout(() => setCopiedMessageId(null), 2000)
+    } catch {
+      // ignore clipboard errors
+    }
+  }
+
   return (
     <main className="flex flex-col h-[calc(100vh-65px)] dark:bg-[#0a0f1c] light:bg-gray-50 transition-colors">
       {/* TOP BAR */}
@@ -110,22 +318,32 @@ export default function ChatPage() {
           <span className="w-2 h-2 rounded-full dark:bg-[#7dd3fc] light:bg-sky-600 animate-pulse mt-1" />
         </div>
         
-        {hasPortfolio && (
-          <label className="flex items-center space-x-2 cursor-pointer dark:bg-[#22314a] light:bg-gray-200 px-3 py-1.5 rounded-lg dark:border-[#2f4f75] light:border-gray-400 border dark:hover:border-[#3b82c4] light:hover:border-gray-500 transition-colors">
-            <input 
-              type="checkbox" 
-              checked={includePortfolio}
-              onChange={(e) => setIncludePortfolio(e.target.checked)}
-              className="accent-[#7dd3fc] w-4 h-4 cursor-pointer"
-            />
-            <span className="text-sm font-medium dark:text-[#9ca3af] light:text-gray-700 select-none">Portfolio context</span>
-          </label>
-        )}
+        <div className="flex items-center gap-2">
+          {hasPortfolio && (
+            <label className="flex items-center space-x-2 cursor-pointer dark:bg-[#22314a] light:bg-gray-200 px-3 py-1.5 rounded-lg dark:border-[#2f4f75] light:border-gray-400 border dark:hover:border-[#3b82c4] light:hover:border-gray-500 transition-colors">
+              <input 
+                type="checkbox" 
+                checked={includePortfolio}
+                onChange={(e) => setIncludePortfolio(e.target.checked)}
+                className="accent-[#7dd3fc] w-4 h-4 cursor-pointer"
+              />
+              <span className="text-sm font-medium dark:text-[#9ca3af] light:text-gray-700 select-none">Portfolio context</span>
+            </label>
+          )}
+          <button
+            type="button"
+            onClick={clearHistory}
+            className="bg-transparent border border-transparent px-2 py-1 rounded-md text-[#6b7280] hover:text-red-400 transition-colors"
+            title="Clear history"
+          >
+            🗑
+          </button>
+        </div>
       </div>
 
       {/* MESSAGE AREA */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
-        {messages.length === 0 ? (
+        {allMessages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center max-w-2xl mx-auto">
             <div className="w-16 h-16 dark:bg-[#22314a] light:bg-gray-200 rounded-2xl flex items-center justify-center mb-6 dark:border-[#2f4f75] light:border-gray-300 border">
               <svg className="w-8 h-8 dark:text-[#7dd3fc] light:text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
@@ -137,7 +355,7 @@ export default function ChatPage() {
               {starterChips.map(chip => (
                 <button
                   key={chip}
-                  onClick={() => handleSubmit(chip)}
+                  onClick={() => submitQuestion(chip)}
                   className="rounded-full dark:border-[#22314a] light:border-gray-300 border dark:bg-[#101827] light:bg-gray-100 px-4 py-3 text-sm dark:text-[#9ca3af] light:text-gray-700 dark:hover:border-[#2f4f75] light:hover:border-sky-400 dark:hover:text-white light:hover:text-[#1f2937] transition-colors"
                 >
                   {chip}
@@ -147,30 +365,93 @@ export default function ChatPage() {
           </div>
         ) : (
           <div className="max-w-3xl mx-auto space-y-6 pb-4">
-            {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {msg.role === 'assistant' && (
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full dark:bg-sky-900/40 light:bg-sky-200 dark:border-sky-800 light:border-sky-400 border flex items-center justify-center text-xs dark:text-[#7dd3fc] light:text-sky-700 font-bold mr-3 mt-1 select-none">
-                    ET
-                  </div>
-                )}
-                
-                <div className="flex flex-col max-w-[80%]">
-                  <div className={`px-5 py-3 text-sm ${
-                    msg.role === 'user' 
-                      ? 'dark:bg-[#22314a] light:bg-sky-100 rounded-2xl rounded-tr-sm dark:text-white light:text-sky-900 dark:border-[#2f4f75] light:border-sky-300 border' 
-                      : msg.isError
-                        ? 'dark:bg-red-900/20 light:bg-red-100 dark:border-red-900 light:border-red-300 border rounded-2xl rounded-tl-sm dark:text-red-400 light:text-red-700'
-                        : 'dark:bg-[#101827] light:bg-white rounded-2xl rounded-tl-sm dark:text-[#e2e8f0] light:text-[#1f2937] dark:border-[#22314a] light:border-gray-300 border shadow-sm'
-                  }`}>
-                    {msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content}
-                  </div>
-                  <span className={`text-xs dark:text-[#64748b] light:text-gray-600 mt-1.5 ${msg.role === 'user' ? 'text-right' : 'text-left ml-1'}`}>
-                    {msg.timestamp.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+            {sessions.map((session) => (
+              <div key={session.id} className="space-y-4">
+                <div style={{ textAlign: 'center', color: '#4b5563', fontSize: 12, margin: '16px 0' }}>
+                  <span style={{ background: '#161b22', padding: '4px 12px', borderRadius: 20 }}>
+                    {formatSessionDate(session.date)}
                   </span>
                 </div>
+
+                {session.messages.map((msg) => (
+                  <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    {msg.role === 'assistant' && (
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full dark:bg-sky-900/40 light:bg-sky-200 dark:border-sky-800 light:border-sky-400 border flex items-center justify-center text-xs dark:text-[#7dd3fc] light:text-sky-700 font-bold mr-3 mt-1 select-none">
+                        ET
+                      </div>
+                    )}
+
+                    <div className="flex flex-col max-w-[80%]">
+                      <div className={`group relative px-5 py-3 text-sm ${
+                        msg.role === 'user' 
+                          ? 'dark:bg-[#22314a] light:bg-sky-100 rounded-2xl rounded-tr-sm dark:text-white light:text-sky-900 dark:border-[#2f4f75] light:border-sky-300 border' 
+                          : msg.isError
+                            ? 'dark:bg-red-900/20 light:bg-red-100 dark:border-red-900 light:border-red-300 border rounded-2xl rounded-tl-sm dark:text-red-400 light:text-red-700'
+                            : 'dark:bg-[#101827] light:bg-white rounded-2xl rounded-tl-sm dark:text-[#e2e8f0] light:text-[#1f2937] dark:border-[#22314a] light:border-gray-300 border shadow-sm'
+                      }`}>
+                        {msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content}
+
+                        {msg.role === 'assistant' && !msg.isError && (
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(msg.id, msg.content)}
+                            className="absolute top-2 right-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-200"
+                            title="Copy"
+                          >
+                            {copiedMessageId === msg.id ? '✓' : '📋'}
+                          </button>
+                        )}
+                      </div>
+
+                      <span className={`text-xs dark:text-[#64748b] light:text-gray-600 mt-1.5 ${msg.role === 'user' ? 'text-right' : 'text-left ml-1'}`}>
+                        {new Date(msg.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+
+                      {msg.role === 'assistant' && msg.followUps && msg.followUps.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2 ml-1">
+                          {msg.followUps.map((q, idx) => (
+                            <button
+                              key={`${msg.id}-fu-${idx}`}
+                              onClick={() => submitQuestion(q)}
+                              className="px-3.5 py-1.5 text-xs rounded-full border transition-colors"
+                              style={{
+                                background: '#1f2937',
+                                border: '1px solid #374151',
+                                color: '#9ca3af',
+                                cursor: 'pointer',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = '#3b82f6'
+                                e.currentTarget.style.color = '#93c5fd'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = '#374151'
+                                e.currentTarget.style.color = '#9ca3af'
+                              }}
+                            >
+                              {q}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             ))}
+
+            {isLoading && showTyping && (
+              <div className="flex justify-start">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full dark:bg-sky-900/40 light:bg-sky-200 dark:border-sky-800 light:border-sky-400 border flex items-center justify-center text-xs dark:text-[#7dd3fc] light:text-sky-700 font-bold mr-3 mt-1 select-none">
+                  ET
+                </div>
+                <div style={{ display: 'flex', gap: 4, padding: '12px 16px', alignItems: 'center' }} className="dark:bg-[#101827] light:bg-white dark:border-[#22314a] light:border-gray-300 border shadow-sm rounded-2xl rounded-tl-sm">
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', animation: 'bounce 1s infinite' }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', animation: 'bounce 1s infinite 0.2s' }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', animation: 'bounce 1s infinite 0.4s' }} />
+                </div>
+              </div>
+            )}
             
             {/* STREAMING BUBBLE */}
             {isLoading && streamingContent && (
@@ -181,6 +462,34 @@ export default function ChatPage() {
                   <div className="dark:bg-[#101827] light:bg-white dark:border-[#22314a] light:border-gray-300 border shadow-sm rounded-2xl rounded-tl-sm px-5 py-3 text-sm dark:text-[#e2e8f0] light:text-[#1f2937] max-w-[80%]">
                     {renderMarkdown(streamingContent)}
                     <span className="inline-block w-1.5 h-3.5 dark:bg-[#7dd3fc] light:bg-sky-600 animate-pulse ml-1 align-middle" />
+
+                    {streamingFollowUps.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {streamingFollowUps.map((q, idx) => (
+                          <button
+                            key={`stream-fu-${idx}`}
+                            onClick={() => submitQuestion(q)}
+                            className="px-3.5 py-1.5 text-xs rounded-full border transition-colors"
+                            style={{
+                              background: '#1f2937',
+                              border: '1px solid #374151',
+                              color: '#9ca3af',
+                              cursor: 'pointer',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = '#3b82f6'
+                              e.currentTarget.style.color = '#93c5fd'
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = '#374151'
+                              e.currentTarget.style.color = '#9ca3af'
+                            }}
+                          >
+                            {q}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                </div>
             )}
@@ -216,6 +525,13 @@ export default function ChatPage() {
           </button>
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+      `}</style>
     </main>
   )
 }

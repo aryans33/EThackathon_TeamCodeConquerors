@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ET Radar Frontend
 
-## Getting Started
+This app is the Next.js frontend for ET Radar. It renders dashboards, filings, stock detail views, portfolio analysis UI, AI chat, and the AI market video player.
 
-First, run the development server:
+## Quick Start
+
+1. Start backend first on port 8000.
+2. From this folder, install dependencies and run dev server.
 
 ```bash
+cd et-radar-frontend
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Frontend Routes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/` landing page
+- `/auth` login and signup
+- `/dashboard` opportunity radar dashboard
+- `/stock/[symbol]` stock detail, patterns, and charts
+- `/filings` filing feed with categories and confidence UI
+- `/portfolio` mutual fund upload and analysis
+- `/chat` streaming AI chat with session history
+- `/video` AI Market Video Engine
 
-## Learn More
+## API Integration
 
-To learn more about Next.js, take a look at the following resources:
+- API helper: `lib/api.ts`
+- Expected backend base: `http://localhost:8000/api`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The video page calls:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `GET /api/video/daily-script`
 
-## Deploy on Vercel
+The chat page uses streaming response from:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `POST /api/chat/`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Demo Notes
+
+- UI is designed to be demo-resilient with fallback content in major views.
+- The video page can render fallback script data if API generation is unavailable.
+- Keep backend and worker running while judging for live radar/video behavior.
+
+## Build
+
+```bash
+npm run build
+npm run start
+```
+
+## Troubleshooting
+
+- If frontend cannot fetch data, ensure backend is on port 8000.
+- If charts/pages are empty, run backend seed scripts:
+  - `scripts/seed_data.py`
+  - `scripts/seed_ohlcv.py`
+  - `scripts/seed_filings.py`
+- If CORS issues appear, verify backend `FRONTEND_URL` in `.env`.

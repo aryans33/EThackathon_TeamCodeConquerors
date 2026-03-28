@@ -1,6 +1,50 @@
 # ET Radar
 
+## Quick Demo Setup (Run In Order)
+
+```bash
+# Quick demo setup (run in order)
+cd et-radar-backend
+pip install -r requirements.txt --break-system-packages
+alembic upgrade head
+PYTHONPATH=. python scripts/seed_data.py
+PYTHONPATH=. python scripts/seed_ohlcv.py
+PYTHONPATH=. python scripts/seed_filings.py   # NEW - adds filing demo data
+uvicorn app.main:app --reload &
+
+cd ../et-radar-frontend
+npm install
+npm run dev
+# Open http://localhost:3000
+```
+
+Windows PowerShell equivalent for `PYTHONPATH=.` commands:
+
+```powershell
+$env:PYTHONPATH='.'; python scripts/seed_data.py
+$env:PYTHONPATH='.'; python scripts/seed_ohlcv.py
+$env:PYTHONPATH='.'; python scripts/seed_filings.py
+```
+
 ET Radar is a full-stack market intelligence platform for Indian equities. It combines structured market data, filing/event insights, technical pattern detection, and LLM-powered reasoning so users can scan opportunities faster and ask portfolio-aware questions in plain language.
+
+## Architecture At A Glance
+
+1. Data layer:
+
+- PostgreSQL stores stocks, OHLCV, filings, signals, chat history, and portfolio reports.
+- Redis is used for API caching and Celery broker/result backend.
+
+2. Backend layer (FastAPI + workers):
+
+- FastAPI serves market, filings, patterns, radar, portfolio, chat, and video APIs.
+- Celery runs async ingestion/radar jobs (`fetch_prices`, `fetch_filings`, `fetch_bulk_deals`, `run_opportunity_radar`).
+- Groq powers chat reasoning and daily video script generation.
+
+3. Frontend layer (Next.js):
+
+- Dashboard, stock detail, filings, portfolio analyzer, AI chat, and AI market video pages.
+- Consumes backend APIs via `http://localhost:8000/api`.
 
 ## What This Project Does
 
@@ -16,7 +60,8 @@ Core product flows:
 1. Ingest stock and event data
 2. Generate AI-assisted opportunity signals
 3. Detect technical chart patterns from OHLCV history
-4. Expose results to UI and to an SSE-based chat endpoint
+4. Generate AI market wrap video scenes from live DB context + LLM
+5. Expose results to UI and to an SSE-based chat endpoint
 
 ## Repository Structure
 
@@ -99,6 +144,16 @@ Key API routes:
 - `GET /api/status`
 - `GET /api/admin/groq-usage`
 
+### 7. AI Market Video Engine
+
+- Builds a daily market-wrap script using database context + Groq
+- Uses Redis caching (30-minute TTL) to avoid repeated LLM calls during demos
+- Always returns valid script JSON with fallback payload on generation/parsing errors
+
+Key API route:
+
+- `GET /api/video/daily-script`
+
 ## Technology Stack
 
 Backend:
@@ -177,8 +232,13 @@ uvicorn app.main:app --reload
 Run Celery worker in another terminal:
 
 ```bash
-celery -A app.tasks.celery_app worker --loglevel=info -P eventlet
+celery -A app.tasks.celery_app worker --loglevel=info -P solo
 ```
+
+Notes:
+
+- For local Windows demos, `-P solo` is recommended.
+- Upstash Redis is used via TLS (`rediss://`) in Celery worker config.
 
 ## 3. Frontend Setup
 
@@ -201,6 +261,7 @@ Inside `et-radar-backend`:
 ```bash
 python scripts/seed_data.py
 python scripts/seed_ohlcv.py
+python scripts/seed_filings.py
 python scripts/fetch_real_data.py
 python scripts/test_chat.py
 ```
@@ -209,6 +270,7 @@ What they do:
 
 - `seed_data.py`: inserts baseline/demo records
 - `seed_ohlcv.py`: generates synthetic OHLCV history for tracked stocks
+- `seed_filings.py`: inserts deterministic demo filings (idempotent)
 - `fetch_real_data.py`: attempts market data ingestion for configured symbols
 - `test_chat.py`: basic chat route/system check
 
@@ -245,10 +307,11 @@ Typical local expectations:
 ## Typical Run Order
 
 1. Start PostgreSQL and Redis
-2. Start backend API (`uvicorn`)
-3. Start Celery worker
-4. Start frontend (`npm run dev`)
-5. Seed/fetch data scripts as needed
+2. Run migrations (`alembic upgrade head`)
+3. Seed data (`seed_data.py`, `seed_ohlcv.py`, `seed_filings.py`)
+4. Start backend API (`uvicorn`)
+5. Start Celery worker
+6. Start frontend (`npm run dev`)
 
 ## API Quick Reference
 
@@ -266,6 +329,7 @@ Typical local expectations:
 - `GET /api/portfolio/history?session_id=abc`
 - `GET /api/portfolio/{portfolio_id}`
 - `POST /api/chat/`
+- `GET /api/video/daily-script`
 
 ## Troubleshooting
 

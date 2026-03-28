@@ -156,6 +156,14 @@ async def get_latest_filings(
     return [format_filing(f, stocks_by_id) for f in filings]
 
 
+@router.get("", response_model=list[LatestFilingOut])
+async def get_filings(
+    limit: int = Query(20, ge=1, le=200),
+    db: AsyncSession = Depends(get_db),
+):
+    return await get_latest_filings(limit=limit, db=db)
+
+
 @router.post("/refresh")
 async def refresh_filings(background_tasks: BackgroundTasks):
     background_tasks.add_task(_insert_dummy_filings)
