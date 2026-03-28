@@ -39,7 +39,7 @@ const DEMO_FILINGS: FilingCard[] = [
 
 const CATEGORY_BADGES: Record<string, { bg: string; text: string }> = {
   Earnings: { bg: '#166534', text: '#86efac' },
-  'Bulk Deals': { bg: '#1e3a5f', text: '#93c5fd' },
+  'Bulk Deals': { bg: '#000000', text: '#d4af37' },
   Expansion: { bg: '#3b0764', text: '#d8b4fe' },
   Management: { bg: '#7c2d12', text: '#fdba74' },
 }
@@ -139,14 +139,14 @@ export default function FilingsPage() {
     <main className="max-w-[900px] mx-auto px-4 py-6 md:py-8 space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-white text-2xl font-bold">Latest Filings</h1>
-          <p className="text-[#9ca3af] text-sm mt-1">AI-detected signals from BSE announcements</p>
+          <h1 className="text-content-primary text-2xl font-bold">Latest Filings</h1>
+          <p className="text-content-secondary text-sm mt-1">AI-detected signals from BSE announcements</p>
         </div>
         <button
           type="button"
           onClick={handleRefresh}
           disabled={refreshing}
-          className="px-3 py-2 text-sm rounded-lg border border-[#30363d] bg-[#161b22] hover:border-[#3b82f6] text-white disabled:opacity-60 transition-colors"
+          className="px-3 py-2 text-sm rounded-lg border border-border bg-surface-1 hover:border-amber-500 text-content-primary disabled:opacity-60 transition-colors"
         >
           {refreshing ? 'Refreshing...' : 'Refresh'}
         </button>
@@ -162,8 +162,8 @@ export default function FilingsPage() {
               onClick={() => setActiveFilter(tab)}
               className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
                 active
-                  ? 'bg-blue-600/20 border-blue-500 text-blue-300'
-                  : 'bg-[#161b22] border-[#30363d] text-[#9ca3af] hover:text-white hover:border-[#3b82f6]'
+                  ? 'bg-amber-500/20 border-amber-500 text-amber-500'
+                  : 'bg-surface-1 border-border text-content-secondary hover:text-content-primary hover:border-amber-500'
               }`}
             >
               {tab} ({counts[tab]})
@@ -175,19 +175,19 @@ export default function FilingsPage() {
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="rounded-[10px] border border-[#30363d] bg-[#161b22] p-5 animate-pulse">
-              <div className="h-4 w-40 bg-gray-700 rounded" />
-              <div className="h-4 w-72 bg-gray-700 rounded mt-3" />
-              <div className="h-3 w-full bg-gray-800 rounded mt-2" />
-              <div className="h-2 w-48 bg-gray-700 rounded mt-4" />
+            <div key={i} className="rounded-[10px] border border-border bg-surface-1 p-5 animate-pulse">
+              <div className="h-4 w-40 bg-slate-300 dark:bg-slate-700 rounded" />
+              <div className="h-4 w-72 bg-slate-300 dark:bg-slate-700 rounded mt-3" />
+              <div className="h-3 w-full bg-slate-200 dark:bg-slate-800 rounded mt-2" />
+              <div className="h-2 w-48 bg-slate-300 dark:bg-slate-700 rounded mt-4" />
             </div>
           ))}
         </div>
       ) : visibleFilings.length === 0 ? (
-        <div className="rounded-[10px] border border-[#30363d] bg-[#161b22] px-6 py-10 text-center">
+        <div className="rounded-[10px] border border-border bg-surface-1 px-6 py-10 text-center">
           <div className="text-5xl leading-none">-</div>
-          <div className="text-white text-lg font-semibold mt-3">No filings found</div>
-          <div className="text-[#9ca3af] text-sm mt-1">Try refreshing or check back after market hours</div>
+          <div className="text-content-primary text-lg font-semibold mt-3">No filings found</div>
+          <div className="text-content-secondary text-sm mt-1">Try refreshing or check back after market hours</div>
         </div>
       ) : (
         <div className="space-y-3">
@@ -197,12 +197,12 @@ export default function FilingsPage() {
               <article
                 key={f.id}
                 onClick={() => router.push(`/stock/${f.symbol}`)}
-                className="rounded-[10px] border border-[#30363d] bg-[#161b22] p-5 transition-colors hover:border-[#3b82f6] cursor-pointer"
+                className="rounded-[10px] border border-border bg-surface-1 p-5 transition-colors hover:border-amber-500 cursor-pointer"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-white text-base font-bold">{f.symbol}</div>
-                    <div className="text-[#9ca3af] text-[13px]">{f.company}</div>
+                    <div className="text-content-primary text-base font-bold">{f.symbol}</div>
+                    <div className="text-content-secondary text-[13px]">{f.company}</div>
                   </div>
                   <span
                     className="px-2 py-1 rounded-md text-xs font-medium"
@@ -212,15 +212,15 @@ export default function FilingsPage() {
                   </span>
                 </div>
 
-                <h2 className="text-white text-[15px] font-semibold mt-[10px]">{f.title}</h2>
-                <p className="text-[#9ca3af] text-[13px] mt-1">{f.summary}</p>
+                <h2 className="text-content-primary text-[15px] font-semibold mt-[10px]">{f.title}</h2>
+                <p className="text-content-secondary text-[13px] mt-1">{f.summary}</p>
                 {f.sourceUrl && (
                   <a
                     href={f.sourceUrl}
                     target="_blank"
                     rel="noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="inline-flex mt-2 text-xs text-[#93c5fd] hover:text-[#bfdbfe]"
+                    className="inline-flex mt-2 text-xs text-[#d4af37] dark:text-[#d4af37] hover:text-[#c49f33] dark:hover:text-[#e4c06a]"
                   >
                     View source
                   </a>
@@ -228,15 +228,15 @@ export default function FilingsPage() {
 
                 <div className="mt-4 flex items-center justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 text-xs text-[#9ca3af]">
+                    <div className="flex items-center gap-2 text-xs text-content-secondary">
                       <span>Confidence</span>
-                      <span className="text-white font-medium">{f.confidence}%</span>
+                      <span className="text-content-primary font-medium">{f.confidence}%</span>
                     </div>
-                    <div className="mt-1 h-2 w-full rounded-full bg-[#0d1117] border border-[#30363d] overflow-hidden">
-                      <div className="h-full bg-[#3b82f6]" style={{ width: `${f.confidence}%` }} />
+                    <div className="mt-1 h-2 w-full rounded-full bg-slate-200 dark:bg-[#0d1117] border border-border overflow-hidden">
+                      <div className="h-full bg-amber-500" style={{ width: `${f.confidence}%` }} />
                     </div>
                   </div>
-                  <span className="text-xs text-[#9ca3af] whitespace-nowrap">{f.date}</span>
+                  <span className="text-xs text-content-secondary whitespace-nowrap">{f.date}</span>
                 </div>
               </article>
             )

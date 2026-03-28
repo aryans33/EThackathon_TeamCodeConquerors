@@ -342,24 +342,24 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="flex flex-col h-[calc(100vh-65px)] dark:bg-[#0a0f1c] light:bg-gray-50 transition-colors">
+    <main className="flex flex-col min-h-[calc(100dvh-65px)] md:h-[calc(100vh-65px)] dark:bg-[#0a0f1c] bg-gray-50 transition-colors">
       {/* TOP BAR */}
-      <div className="flex justify-between items-center px-6 py-4 dark:border-[#22314a] light:border-gray-300 border-b dark:bg-[#101827]/50 light:bg-white">
+      <div className="flex flex-wrap justify-between items-center gap-2 px-4 md:px-6 py-3 md:py-4 dark:border-[#22314a] border-gray-300 border-b dark:bg-[#101827]/50 bg-white">
         <div className="flex items-center space-x-3">
-          <h1 className="text-xl font-bold dark:text-[#f0fdf4] light:text-[#1f2937]">ET Radar AI</h1>
-          <span className="w-2 h-2 rounded-full dark:bg-[#7dd3fc] light:bg-sky-600 animate-pulse mt-1" />
+          <h1 className="text-lg md:text-xl font-bold dark:text-[#f0fdf4] text-[#1f2937]">ET Radar AI</h1>
+          <span className="w-2 h-2 rounded-full bg-[#d4af37] animate-pulse mt-1" />
         </div>
         
         <div className="flex items-center gap-2">
           {hasPortfolio && (
-            <label className="flex items-center space-x-2 cursor-pointer dark:bg-[#22314a] light:bg-gray-200 px-3 py-1.5 rounded-lg dark:border-[#2f4f75] light:border-gray-400 border dark:hover:border-[#3b82c4] light:hover:border-gray-500 transition-colors">
+            <label className="flex items-center space-x-2 cursor-pointer dark:bg-[#22314a] bg-gray-200 px-3 py-1.5 rounded-lg dark:border-[#2f4f75] border-gray-400 border dark:hover:border-[#3b82c4] hover:border-gray-500 transition-colors">
               <input 
                 type="checkbox" 
                 checked={includePortfolio}
                 onChange={(e) => setIncludePortfolio(e.target.checked)}
-                className="accent-[#7dd3fc] w-4 h-4 cursor-pointer"
+                className="accent-[#d4af37] w-4 h-4 cursor-pointer"
               />
-              <span className="text-sm font-medium dark:text-[#9ca3af] light:text-gray-700 select-none">Portfolio context</span>
+              <span className="text-sm font-medium dark:text-[#9ca3af] text-gray-700 select-none">Portfolio context</span>
             </label>
           )}
           <button
@@ -377,18 +377,18 @@ export default function ChatPage() {
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
         {allMessages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center max-w-2xl mx-auto">
-            <div className="w-16 h-16 dark:bg-[#22314a] light:bg-gray-200 rounded-2xl flex items-center justify-center mb-6 dark:border-[#2f4f75] light:border-gray-300 border">
-              <svg className="w-8 h-8 dark:text-[#7dd3fc] light:text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+            <div className="w-16 h-16 dark:bg-slate-700 bg-slate-300 rounded-2xl flex items-center justify-center mb-6 dark:border-slate-800 border-slate-200 border">
+              <svg className="w-8 h-8 dark:text-[#d4af37] text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
             </div>
-            <h2 className="text-2xl font-bold dark:text-[#f0fdf4] light:text-[#1f2937] mb-2">What would you like to know?</h2>
-            <p className="dark:text-[#64748b] light:text-gray-600 mb-8">Ask about signals, your portfolio, or any NSE/BSE stock.</p>
+            <h2 className="text-2xl font-bold dark:text-[#f0fdf4] text-[#1f2937] mb-2">What would you like to know?</h2>
+            <p className="dark:text-[#64748b] text-gray-600 mb-8">Ask about signals, your portfolio, or any NSE/BSE stock.</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
               {starterChips.map(chip => (
                 <button
                   key={chip}
                   onClick={() => submitQuestion(chip)}
-                  className="rounded-full dark:border-[#22314a] light:border-gray-300 border dark:bg-[#101827] light:bg-gray-100 px-4 py-3 text-sm dark:text-[#9ca3af] light:text-gray-700 dark:hover:border-[#2f4f75] light:hover:border-sky-400 dark:hover:text-white light:hover:text-[#1f2937] transition-colors"
+                  className="rounded-full dark:border-[#22314a] border-gray-300 border dark:bg-[#101827] bg-gray-100 px-4 py-3 text-sm dark:text-[#9ca3af] text-gray-700 dark:hover:border-[#d4af37] hover:border-[#d4af37] dark:hover:text-white hover:text-[#1f2937] transition-colors"
                 >
                   {chip}
                 </button>
@@ -408,7 +408,7 @@ export default function ChatPage() {
                 {session.messages.map((msg) => (
                   <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     {msg.role === 'assistant' && (
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full dark:bg-sky-900/40 light:bg-sky-200 dark:border-sky-800 light:border-sky-400 border flex items-center justify-center text-xs dark:text-[#7dd3fc] light:text-sky-700 font-bold mr-3 mt-1 select-none">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full dark:bg-black/30 bg-black/5 dark:border-black/50 border-black/10 border flex items-center justify-center text-xs dark:text-[#d4af37] text-[#d4af37] font-bold mr-3 mt-1 select-none">
                         ET
                       </div>
                     )}
@@ -416,10 +416,10 @@ export default function ChatPage() {
                     <div className="flex flex-col max-w-[80%]">
                       <div className={`group relative px-5 py-3 text-sm ${
                         msg.role === 'user' 
-                          ? 'dark:bg-[#22314a] light:bg-sky-100 rounded-2xl rounded-tr-sm dark:text-white light:text-sky-900 dark:border-[#2f4f75] light:border-sky-300 border' 
+                          ? 'dark:bg-[#22314a] bg-black/5 rounded-2xl rounded-tr-sm dark:text-white text-black dark:border-[#2f4f75] border-black/20 border' 
                           : msg.isError
-                            ? 'dark:bg-red-900/20 light:bg-red-100 dark:border-red-900 light:border-red-300 border rounded-2xl rounded-tl-sm dark:text-red-400 light:text-red-700'
-                            : 'dark:bg-[#101827] light:bg-white rounded-2xl rounded-tl-sm dark:text-[#e2e8f0] light:text-[#1f2937] dark:border-[#22314a] light:border-gray-300 border shadow-sm'
+                            ? 'dark:bg-red-900/20 bg-red-100 dark:border-red-900 border-red-300 border rounded-2xl rounded-tl-sm dark:text-red-400 text-red-700'
+                            : 'dark:bg-[#101827] bg-white rounded-2xl rounded-tl-sm dark:text-[#e2e8f0] text-[#1f2937] dark:border-[#22314a] border-gray-300 border shadow-sm'
                       }`}>
                         {msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content}
 
@@ -435,7 +435,7 @@ export default function ChatPage() {
                         )}
                       </div>
 
-                      <span className={`text-xs dark:text-[#64748b] light:text-gray-600 mt-1.5 ${msg.role === 'user' ? 'text-right' : 'text-left ml-1'}`}>
+                      <span className={`text-xs dark:text-[#64748b] text-gray-600 mt-1.5 ${msg.role === 'user' ? 'text-right' : 'text-left ml-1'}`}>
                         {new Date(msg.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                       </span>
 
@@ -453,8 +453,8 @@ export default function ChatPage() {
                                 cursor: 'pointer',
                               }}
                               onMouseEnter={(e) => {
-                                e.currentTarget.style.borderColor = '#3b82f6'
-                                e.currentTarget.style.color = '#93c5fd'
+                                e.currentTarget.style.borderColor = '#d4af37'
+                                e.currentTarget.style.color = '#d4af37'
                               }}
                               onMouseLeave={(e) => {
                                 e.currentTarget.style.borderColor = '#374151'
@@ -475,7 +475,7 @@ export default function ChatPage() {
                               <div key={`${msg.id}-${c.id}`} className="flex items-center gap-2 text-xs text-[#94a3b8]">
                                 <span
                                   className={`w-1.5 h-1.5 rounded-full ${
-                                    c.type === 'filing' ? 'bg-blue-500' : c.type === 'signal' ? 'bg-green-500' : 'bg-amber-500'
+                                    c.type === 'filing' ? 'bg-[#d4af37]' : c.type === 'signal' ? 'bg-green-500' : 'bg-amber-500'
                                   }`}
                                 />
                                 <span className="truncate">{c.label}</span>
@@ -493,13 +493,13 @@ export default function ChatPage() {
 
             {isLoading && showTyping && (
               <div className="flex justify-start">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full dark:bg-sky-900/40 light:bg-sky-200 dark:border-sky-800 light:border-sky-400 border flex items-center justify-center text-xs dark:text-[#7dd3fc] light:text-sky-700 font-bold mr-3 mt-1 select-none">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full dark:bg-black/30 bg-black/5 dark:border-black/50 border-black/10 border flex items-center justify-center text-xs dark:text-[#d4af37] text-[#d4af37] font-bold mr-3 mt-1 select-none">
                   ET
                 </div>
-                <div style={{ display: 'flex', gap: 4, padding: '12px 16px', alignItems: 'center' }} className="dark:bg-[#101827] light:bg-white dark:border-[#22314a] light:border-gray-300 border shadow-sm rounded-2xl rounded-tl-sm">
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', animation: 'bounce 1s infinite' }} />
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', animation: 'bounce 1s infinite 0.2s' }} />
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', animation: 'bounce 1s infinite 0.4s' }} />
+                <div style={{ display: 'flex', gap: 4, padding: '12px 16px', alignItems: 'center' }} className="dark:bg-slate-800 bg-slate-200 dark:border-slate-700 border-slate-300 border shadow-sm rounded-2xl rounded-tl-sm">
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#d4af37', animation: 'bounce 1s infinite' }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#d4af37', animation: 'bounce 1s infinite 0.2s' }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#d4af37', animation: 'bounce 1s infinite 0.4s' }} />
                 </div>
               </div>
             )}
@@ -511,7 +511,7 @@ export default function ChatPage() {
       </div>
 
       {/* INPUT BAR */}
-      <div className="p-4 dark:bg-[#101827] light:bg-white dark:border-[#22314a] light:border-gray-300 border-t">
+      <div className="p-4 dark:bg-[#101827] bg-white dark:border-[#22314a] border-gray-300 border-t">
         <div className="max-w-3xl mx-auto relative flex items-end space-x-2">
           <textarea 
             value={input}
@@ -520,15 +520,15 @@ export default function ChatPage() {
             disabled={isLoading}
             placeholder="Ask about any stock, signal, or your portfolio..."
             rows={1}
-            className="flex-1 dark:bg-[#22314a] light:bg-gray-100 dark:border-[#2f4f75] light:border-gray-300 border rounded-xl px-4 py-3 text-sm dark:text-white light:text-[#1f2937] dark:placeholder-[#64748b] light:placeholder-gray-500 resize-none focus:outline-none focus:border-[#7dd3fc] focus:ring-1 focus:ring-[#7dd3fc] disabled:opacity-50 min-h-[46px] max-h-32 overflow-y-auto transition-colors"
+            className="flex-1 dark:bg-[#22314a] bg-gray-100 dark:border-[#2f4f75] border-gray-300 border rounded-xl px-4 py-3 text-sm dark:text-white text-[#1f2937] dark:placeholder-[#64748b] placeholder-gray-500 resize-none focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] disabled:opacity-50 min-h-[46px] max-h-32 overflow-y-auto transition-colors"
           />
           <button 
             onClick={() => handleSubmit()}
             disabled={isLoading || !input.trim()}
-            className="flex-shrink-0 dark:bg-[#7dd3fc] dark:hover:bg-[#bae6fd] light:bg-sky-600 light:hover:bg-sky-700 dark:disabled:bg-[#22314a] light:disabled:bg-gray-300 dark:disabled:text-[#64748b] light:disabled:text-gray-600 dark:text-[#07130f] light:text-white rounded-xl w-12 h-12 flex items-center justify-center transition-all disabled:opacity-50"
+            className="flex-shrink-0 dark:bg-[#d4af37] dark:hover:bg-[#e4c06a] bg-[#d4af37] hover:bg-[#c49f33] dark:disabled:bg-[#22314a] disabled:bg-gray-300 dark:disabled:text-[#64748b] disabled:text-gray-600 dark:text-[#07130f] text-black rounded-xl w-12 h-12 flex items-center justify-center transition-all disabled:opacity-50"
           >
             {isLoading ? (
-              <div className="w-5 h-5 dark:border-[#64748b] light:border-gray-400 border-2 dark:border-t-white light:border-t-black rounded-full animate-spin" />
+              <div className="w-5 h-5 dark:border-[#64748b] border-gray-400 border-2 dark:border-t-white border-t-black rounded-full animate-spin" />
             ) : (
               <svg className="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
             )}
@@ -545,3 +545,4 @@ export default function ChatPage() {
     </main>
   )
 }
+

@@ -154,7 +154,7 @@ export default function OnboardingTooltip({
                 height: 0,
                 borderLeft: '8px solid transparent',
                 borderRight: '8px solid transparent',
-                borderBottom: '8px solid #3b82f6',
+                borderBottom: '8px solid #d4af37',
               }
             : {
                 bottom: -8,
@@ -162,7 +162,7 @@ export default function OnboardingTooltip({
                 height: 0,
                 borderLeft: '8px solid transparent',
                 borderRight: '8px solid transparent',
-                borderTop: '8px solid #3b82f6',
+                borderTop: '8px solid #d4af37',
               }),
         }}
       />
@@ -170,7 +170,7 @@ export default function OnboardingTooltip({
       <div
         style={{
           background: '#1f2937',
-          border: '1px solid #3b82f6',
+          border: '1px solid #d4af37',
           borderRadius: 12,
           padding: 20,
           maxWidth: 300,
@@ -192,7 +192,7 @@ export default function OnboardingTooltip({
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
-                background: i <= stepIndex ? '#60a5fa' : '#4b5563',
+                background: i <= stepIndex ? '#d4af37' : '#4b5563',
               }}
             />
           ))}
@@ -217,8 +217,8 @@ export default function OnboardingTooltip({
             type='button'
             onClick={next}
             style={{
-              background: '#2563eb',
-              border: '1px solid #3b82f6',
+              background: '#d4af37',
+              border: '1px solid #d4af37',
               color: '#ffffff',
               borderRadius: 8,
               padding: '8px 12px',

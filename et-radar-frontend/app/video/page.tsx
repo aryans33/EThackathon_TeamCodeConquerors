@@ -293,7 +293,7 @@ function FiiDiiChart({ payload }: { payload: FiiDiiPayload }) {
           <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} />
           <Tooltip formatter={(v: any) => `INR ${Number(v).toLocaleString('en-IN')} Cr`} />
           <Legend />
-          <Bar dataKey='fii_net' name='FII Net' fill='#3B82F6' radius={[3, 3, 0, 0]} />
+          <Bar dataKey='fii_net' name='FII Net' fill='#d4af37' radius={[3, 3, 0, 0]} />
           <Bar dataKey='dii_net' name='DII Net' fill='#10B981' radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
@@ -383,7 +383,7 @@ function SignalSpotlightScene({ script }: { script: DailyScript }) {
       </div>
       <div style={{ marginTop: 10, width: '90%', maxWidth: 620, border: '1px solid #334155', borderRadius: 10, background: '#0f172a', padding: '10px 12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <div style={{ fontSize: 11, color: '#93c5fd', letterSpacing: 1, textTransform: 'uppercase' }}>Latest Filing</div>
+          <div style={{ fontSize: 11, color: '#d4af37', letterSpacing: 1, textTransform: 'uppercase' }}>Latest Filing</div>
           <div style={{ fontSize: 11, color: '#94a3b8' }}>{latestFiling.date}</div>
         </div>
         <div style={{ marginTop: 4, color: '#f8fafc', fontSize: 13, fontWeight: 700 }}>
@@ -464,7 +464,7 @@ function OutroScene() {
         style={{
           fontSize: 52,
           fontWeight: 900,
-          background: 'linear-gradient(90deg, #60a5fa, #8b5cf6)',
+          background: 'linear-gradient(90deg, #d4af37, #8b5cf6)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
         }}
@@ -693,9 +693,9 @@ export default function VideoPage() {
     <main className='max-w-7xl mx-auto px-4 md:px-6 py-6 space-y-4'>
       <div className='flex flex-wrap items-center justify-between gap-3'>
         <div>
-          <h1 className='text-2xl font-bold text-white'>Daily Market Wrap</h1>
-          <p className='text-sm text-slate-400 mt-1'>AI-generated in seconds · Zero human editing · Powered by Groq</p>
-          <p className='text-xs text-slate-500 mt-1'>{todayText}</p>
+          <h1 className='text-2xl font-bold text-content-primary'>Daily Market Wrap</h1>
+          <p className='text-sm text-content-secondary mt-1'>AI-generated in seconds · Zero human editing · Powered by Groq</p>
+          <p className='text-xs text-content-muted mt-1'>{todayText}</p>
         </div>
         <span className='inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold text-red-200 bg-red-900/30 border border-red-700'>
           <span className='w-2 h-2 rounded-full bg-red-500 animate-pulse' />
@@ -704,11 +704,11 @@ export default function VideoPage() {
       </div>
 
       {!script && !loadingScript && (
-        <div className='rounded-xl border border-[#30363d] bg-[#161b22] p-6'>
+        <div className='rounded-xl border border-border bg-surface-1 p-6'>
           <button
             type='button'
             onClick={generateScript}
-            className='px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors'
+            className='px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-medium transition-colors'
           >
             Generate Today&apos;s Market Wrap
           </button>
@@ -716,23 +716,23 @@ export default function VideoPage() {
       )}
 
       {loadingScript && (
-        <div className='rounded-xl border border-[#30363d] bg-[#161b22] p-6'>
-          <p className='text-slate-200'>AI is writing today&apos;s script...</p>
+        <div className='rounded-xl border border-border bg-surface-1 p-6'>
+          <p className='text-content-primary'>AI is writing today&apos;s script...</p>
           <div className='mt-3 h-2 rounded-full bg-slate-800 overflow-hidden border border-slate-700'>
-            <div className='h-full bg-blue-500 transition-all duration-100' style={{ width: `${genProgress}%` }} />
+            <div className='h-full bg-[#d4af37] transition-all duration-100' style={{ width: `${genProgress}%` }} />
           </div>
-          <p className='text-xs text-slate-500 mt-2'>{genProgress}%</p>
+          <p className='text-xs text-content-secondary mt-2'>{genProgress}%</p>
         </div>
       )}
 
       {hasGenerated && !loadingScript && (
         <>
         <div className='grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4'>
-          <section className='rounded-xl border border-[#30363d] bg-[#161b22] p-4'>
-            <div className='aspect-video rounded-lg border border-[#30363d] bg-[#0f172a] overflow-hidden'>
+          <section className='rounded-xl border border-border bg-surface-1 p-4'>
+            <div className='aspect-video rounded-lg border border-border bg-[#eef2f7] dark:bg-[#0f172a] overflow-hidden'>
               <div style={{ height: 360, opacity: fadeIn ? 1 : 0, transition: 'opacity 0.15s ease-in-out' }}>
                 {isSpeaking && (
-                  <div className='absolute right-8 mt-3 z-10 inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs bg-blue-900/40 border border-blue-700 text-blue-200'>
+                  <div className='absolute right-8 mt-3 z-10 inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs bg-black/40 border border-black/60 text-[#d4af37]'>
                     Speaking...
                   </div>
                 )}
@@ -740,7 +740,7 @@ export default function VideoPage() {
               </div>
               <div className='px-4 pb-3'>
                 <div className='h-1.5 rounded-full bg-slate-800 border border-slate-700 overflow-hidden'>
-                  <div className='h-full bg-blue-500 transition-all duration-100' style={{ width: `${sceneProgress}%` }} />
+                  <div className='h-full bg-[#d4af37] transition-all duration-100' style={{ width: `${sceneProgress}%` }} />
                 </div>
                 <div className='mt-3 rounded-lg border border-slate-700 bg-slate-900/40 p-3 text-sm text-slate-200'>
                   {scene?.voiceover}
@@ -756,36 +756,36 @@ export default function VideoPage() {
                   setCurrentScene(0)
                   setIsPlaying(true)
                 }}
-                className='px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm'
+                className='px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-sm'
               >
                 ▶ Play
               </button>
               <button
                 type='button'
                 onClick={generateScript}
-                className='px-3 py-2 rounded-lg border border-slate-600 text-slate-200 hover:border-blue-500 text-sm'
+                className='px-3 py-2 rounded-lg border border-border text-content-secondary hover:border-amber-500 hover:text-content-primary text-sm'
               >
                 ↻ Regenerate
               </button>
               <button
                 type='button'
                 onClick={playWithVoice}
-                className='px-3 py-2 rounded-lg border border-slate-600 text-slate-200 hover:border-blue-500 text-sm'
+                className='px-3 py-2 rounded-lg border border-border text-content-secondary hover:border-amber-500 hover:text-content-primary text-sm'
               >
                 ▶ Play with Voice
               </button>
               <button
                 type='button'
                 onClick={stopSpeech}
-                className='px-3 py-2 rounded-lg border border-slate-600 text-slate-200 hover:border-red-500 text-sm'
+                className='px-3 py-2 rounded-lg border border-border text-content-secondary hover:border-red-500 hover:text-content-primary text-sm'
               >
                 Mute
               </button>
             </div>
           </section>
 
-          <aside className='rounded-xl border border-[#30363d] bg-[#161b22] p-3'>
-            <h3 className='text-sm font-semibold text-slate-200 mb-2'>Scenes</h3>
+          <aside className='rounded-xl border border-border bg-surface-1 p-3'>
+            <h3 className='text-sm font-semibold text-content-primary mb-2'>Scenes</h3>
             <div className='space-y-2'>
               {activeScript.scenes.map((s, idx) => (
                 <button
@@ -793,12 +793,12 @@ export default function VideoPage() {
                   onClick={() => transitionTo(idx)}
                   className={`w-full text-left p-2.5 rounded-lg border text-xs transition-colors ${
                     idx === currentScene
-                      ? 'bg-blue-900/30 border-blue-700 text-blue-200'
-                      : 'bg-slate-900/30 border-slate-700 text-slate-300 hover:border-blue-500'
+                      ? 'bg-amber-500/20 border-amber-500 text-amber-500'
+                      : 'bg-surface-2 border-border text-content-secondary hover:border-amber-500'
                   }`}
                 >
                   <div className='font-medium'>{idx + 1}. {s.headline}</div>
-                  <div className='text-[11px] text-slate-500 mt-1'>{s.duration_sec}s · {s.visual_type}</div>
+                  <div className='text-[11px] text-content-muted mt-1'>{s.duration_sec}s · {s.visual_type}</div>
                 </button>
               ))}
             </div>

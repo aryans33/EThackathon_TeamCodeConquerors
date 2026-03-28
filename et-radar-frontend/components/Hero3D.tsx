@@ -42,7 +42,7 @@ function EnergyPulse({ start, end, delay }: { start: [number, number, number], e
     <mesh ref={meshRef}>
       <sphereGeometry args={[0.06, 16, 16]} />
       <meshBasicMaterial color={[0.5, 2.5, 1.5]} toneMapped={false} />
-      <pointLight color="#7dd3fc" intensity={2} distance={2} />
+      <pointLight color="#d4af37" intensity={2} distance={2} />
     </mesh>
   )
 }
@@ -87,12 +87,12 @@ function Scene() {
         <Html transform center zIndexRange={[100, 0]}>
           <div 
             ref={rupeeRef}
-            className="w-28 h-20 bg-[#101827]/90 backdrop-blur-md border border-[#2f4f75] rounded-2xl flex flex-col items-center justify-center text-[#7dd3fc] shadow-[0_0_30px_rgba(47,79,117,0.55)] transition-all"
+            className="w-28 h-20 bg-[#101827]/90 backdrop-blur-md border border-[#2f4f75] rounded-2xl flex flex-col items-center justify-center text-[#d4af37] shadow-[0_0_30px_rgba(212,175,55,0.55)] transition-all"
           >
             <span className="text-3xl font-bold" style={{ textShadow: '0 0 10px rgba(125,211,252,0.5)' }}>₹</span>
-            <div className="flex w-full justify-between items-center px-3 mt-1 text-[10px] text-[#7dd3fc] font-mono tracking-widest">
+            <div className="flex w-full justify-between items-center px-3 mt-1 text-[10px] text-[#d4af37] font-mono tracking-widest">
               <span>ET Radar</span>
-               <div className="w-1 h-1 rounded-full bg-[#7dd3fc]" />
+               <div className="w-1 h-1 rounded-full bg-[#d4af37]" />
                <span>Brain</span>
             </div>
           </div>
@@ -102,57 +102,57 @@ function Scene() {
       {/* Floating Screens */}
       <FloatingCard position={card1Pos} rotation={[0, 0.2, 0]} delay={0}>
         <div className="flex items-center space-x-2 text-xs text-[#cbd5e1] font-semibold mb-3">
-           <svg className="w-3 h-3 text-[#7dd3fc]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg> 
+           <svg className="w-3 h-3 text-[#d4af37]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg> 
            <span>Personal Portfolio</span>
         </div>
         <div className="h-20 flex items-end justify-between space-x-2">
           {[40, 70, 45, 90, 60, 100].map((h, i) => (
-            <div key={i} className="w-full bg-[#7dd3fc]/50 rounded-sm" style={{ height: `${h}%` }} />
+            <div key={i} className="w-full bg-[#d4af37]/50 rounded-sm" style={{ height: `${h}%` }} />
           ))}
         </div>
       </FloatingCard>
 
       <FloatingCard position={card2Pos} rotation={[0, -0.2, 0]} delay={0.3}>
         <div className="flex items-center space-x-2 text-xs text-[#cbd5e1] font-semibold mb-3">
-           <svg className="w-3 h-3 text-[#7dd3fc]" fill="currentColor" viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/></svg> 
+           <svg className="w-3 h-3 text-[#d4af37]" fill="currentColor" viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/></svg> 
            <span>Mutual Fund Analysis</span>
         </div>
         <div className="space-y-2">
-          <div className="bg-[#0f2a4a]/50 rounded p-2 text-[10px] text-[#7dd3fc] border-l-2 border-[#7dd3fc]">High overlap detected</div>
-          <div className="bg-[#0f2a4a]/50 rounded p-2 text-[10px] text-[#7dd3fc] border-l-2 border-[#7dd3fc]">Rebalance suggested: -15% MFs</div>
+          <div className="bg-black/50 rounded p-2 text-[10px] text-[#d4af37] border-l-2 border-[#d4af37]">High overlap detected</div>
+          <div className="bg-black/50 rounded p-2 text-[10px] text-[#d4af37] border-l-2 border-[#d4af37]">Rebalance suggested: -15% MFs</div>
         </div>
       </FloatingCard>
 
       <FloatingCard position={card3Pos} rotation={[-0.1, 0.1, 0.05]} delay={0.6}>
         <div className="flex items-center space-x-2 text-xs text-[#cbd5e1] font-semibold mb-3">
-           <svg className="w-3 h-3 text-[#7dd3fc]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+           <svg className="w-3 h-3 text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
            <span>Real-Time Trend Analysis</span>
         </div>
         <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center bg-[#0f2a4a]/50 p-1.5 rounded">
+            <div className="flex justify-between items-center bg-black/50 p-1.5 rounded">
               <span className="text-[10px] text-white font-bold tracking-wider">RELIANCE</span>
-              <span className="text-[10px] text-[#7dd3fc]">+2.4%</span>
+              <span className="text-[10px] text-[#d4af37]">+2.4%</span>
             </div>
-            <div className="flex justify-between items-center bg-[#0f2a4a]/50 p-1.5 rounded">
+            <div className="flex justify-between items-center bg-black/50 p-1.5 rounded">
               <span className="text-[10px] text-white font-bold tracking-wider">HDFCBANK</span>
-              <span className="text-[10px] text-[#7dd3fc]">+1.1%</span>
+              <span className="text-[10px] text-[#d4af37]">+1.1%</span>
             </div>
          </div>
       </FloatingCard>
 
       <FloatingCard position={card4Pos} rotation={[-0.1, -0.1, -0.05]} delay={0.9}>
          <div className="flex items-center space-x-2 text-xs text-[#cbd5e1] font-semibold mb-3">
-            <svg className="w-3 h-3 text-[#7dd3fc]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+            <svg className="w-3 h-3 text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
             <span>AI Recommendations</span>
          </div>
          <div className="space-y-2">
-          <div className="bg-[#0f2a4a]/50 rounded p-2 text-[10px] text-[#94a3b8] flex justify-between">
+          <div className="bg-black/50 rounded p-2 text-[10px] text-[#94a3b8] flex justify-between">
             <span>Buy Watch: TATAMOTORS</span>
-            <span className="text-[#7dd3fc] font-bold">92%</span>
+            <span className="text-[#d4af37] font-bold">92%</span>
           </div>
-          <div className="bg-[#0f2a4a]/50 rounded p-2 text-[10px] text-[#94a3b8] flex justify-between">
+          <div className="bg-black/50 rounded p-2 text-[10px] text-[#94a3b8] flex justify-between">
             <span>Breakout: INFY</span>
-            <span className="text-[#7dd3fc] font-bold">85%</span>
+            <span className="text-[#d4af37] font-bold">85%</span>
           </div>
         </div>
       </FloatingCard>

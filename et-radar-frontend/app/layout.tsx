@@ -4,12 +4,18 @@ import './globals.css'
 import Navbar from '@/components/Navbar'
 import { ThemeProvider } from 'next-themes'
 import { ToastProvider } from '@/context/ToastContext'
+import favicon from './favicon.png'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'ET Radar',
   description: 'AI-Powered Stock Intelligence',
+  icons: {
+    icon: favicon.src,
+    shortcut: favicon.src,
+    apple: favicon.src,
+  },
 }
 
 export default function RootLayout({

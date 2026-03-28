@@ -210,7 +210,7 @@ export default function StockDetail() {
           <div className="text-xl font-medium mt-1">
             ₹{lastPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
             {(diff !== 0) && (
-              <span className={`ml-3 text-sm font-medium ${isPositive ? 'text-sky-300' : 'text-red-400'}`}>
+              <span className={`ml-3 text-sm font-medium ${isPositive ? 'text-[#d4af37]' : 'text-red-400'}`}>
                 {isPositive ? '+' : ''}₹{diff.toFixed(2)} ({isPositive ? '+' : ''}{pct.toFixed(2)}%)
               </span>
             )}
@@ -271,7 +271,7 @@ export default function StockDetail() {
                         `/chat?q=${encodeURIComponent(`Explain the ${formatPattern(p.pattern_name)} pattern on ${symbol} and what I should do`)}`
                       )
                     }
-                    className={`bg-[#161b22] border border-[#30363d] rounded-xl p-5 border-l-4 cursor-pointer transition-all hover:border-[#3b82f6] ${
+                    className={`bg-[#161b22] border border-[#30363d] rounded-xl p-5 border-l-4 cursor-pointer transition-all hover:border-[#d4af37] ${
                       p.detected_today
                         ? 'border-l-[#22c55e] shadow-[0_0_0_1px_rgba(34,197,94,0.35),0_0_24px_rgba(34,197,94,0.15)]'
                         : p.pattern_name === 'death_cross'
@@ -330,9 +330,9 @@ export default function StockDetail() {
                     {p.detected_today && (
                       <div
                         className="mt-4 rounded-md px-3.5 py-2.5"
-                        style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}
+                        style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.2)' }}
                       >
-                        <p className="text-[#60a5fa] text-xs font-bold">What to watch:</p>
+                        <p className="text-[#d4af37] text-xs font-bold">What to watch:</p>
                         <p className="text-[#9ca3af] text-[13px] mt-1 leading-relaxed">
                           {ACTIONABLE_ADVICE[formatPattern(p.pattern_name)] || 'Track volume and confirmation before taking any action.'}
                         </p>
@@ -340,7 +340,7 @@ export default function StockDetail() {
                     )}
 
                     <div className="mt-4 flex justify-end">
-                      <span className="text-xs text-blue-300/80 hover:text-blue-200">Ask AI →</span>
+                      <span className="text-xs text-[#d4af37]/80 hover:text-[#d4af37]">Ask AI →</span>
                     </div>
                   </div>
                 ))}

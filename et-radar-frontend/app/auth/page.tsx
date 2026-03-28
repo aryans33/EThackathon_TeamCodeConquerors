@@ -61,7 +61,7 @@ export default function AuthPage() {
         
         {/* Logo */}
         <div className="flex items-center gap-2 mb-6">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center
+          <div className="w-8 h-8 bg-[#d4af37] rounded-lg flex items-center
                           justify-center text-white font-bold text-sm">E</div>
           <span className="text-white font-bold text-lg">ET Radar</span>
         </div>
@@ -74,7 +74,7 @@ export default function AuthPage() {
               onClick={() => { setMode(m); setError('') }}
               className={`pb-3 px-1 mr-6 text-sm font-medium transition-colors ${
                 mode === m
-                  ? 'text-white border-b-2 border-blue-500'
+                  ? 'text-white border-b-2 border-[#d4af37]'
                   : 'text-slate-500 hover:text-slate-300'
               }`}
             >
@@ -93,7 +93,7 @@ export default function AuthPage() {
               onChange={e => setName(e.target.value)}
               className="w-full bg-[#0d1117] border border-[#30363d] rounded-xl
                          px-4 py-3 text-white text-sm placeholder-slate-500
-                         focus:outline-none focus:border-blue-500 transition-colors"
+                         focus:outline-none focus:border-[#d4af37] transition-colors"
             />
           )}
           <input
@@ -103,7 +103,7 @@ export default function AuthPage() {
             onChange={e => setEmail(e.target.value)}
             className="w-full bg-[#0d1117] border border-[#30363d] rounded-xl
                        px-4 py-3 text-white text-sm placeholder-slate-500
-                       focus:outline-none focus:border-blue-500 transition-colors"
+                       focus:outline-none focus:border-[#d4af37] transition-colors"
           />
           <div className="relative">
             <input
@@ -114,7 +114,7 @@ export default function AuthPage() {
               onKeyDown={e => e.key === 'Enter' && handleSubmit()}
               className="w-full bg-[#0d1117] border border-[#30363d] rounded-xl
                          px-4 py-3 pr-12 text-white text-sm placeholder-slate-500
-                         focus:outline-none focus:border-blue-500 transition-colors"
+                         focus:outline-none focus:border-[#d4af37] transition-colors"
             />
             <button
               onClick={() => setShowPass(!showPass)}
@@ -132,9 +132,9 @@ export default function AuthPage() {
               onChange={e => setConfirm(e.target.value)}
               className="w-full bg-[#0d1117] border border-[#30363d] rounded-xl
                          px-4 py-3 text-white text-sm placeholder-slate-500
-                         focus:outline-none focus:border-blue-500 transition-colors"
+                         focus:outline-none focus:border-[#d4af37] transition-colors"
             />
-          )}
+          )}}
 
           {error && (
             <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20
@@ -147,7 +147,7 @@ export default function AuthPage() {
             onClick={handleSubmit}
             disabled={loading}
             className={`w-full font-medium py-3 rounded-xl transition-colors text-sm
-                         disabled:opacity-50 disabled:cursor-not-allowed text-white bg-blue-600 hover:bg-blue-500`}
+                         disabled:opacity-50 disabled:cursor-not-allowed text-white bg-[#d4af37] hover:bg-[#c49f33]`}
           >
             {loading ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}
           </button>

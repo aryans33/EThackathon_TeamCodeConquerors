@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import { clearAuth, getUser, isGuest, type User } from '@/lib/auth'
 import { useToast } from '@/context/ToastContext'
+import favicon from '@/app/favicon.png'
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -30,8 +32,8 @@ function NavItem({ href, label, currentPath, onClick, id }: { href: string; labe
       className={[
         'text-sm px-3 py-1.5 rounded-md transition-colors',
         active
-          ? 'text-white bg-surface-2 font-medium'
-          : 'text-slate-400 hover:text-slate-200 hover:bg-surface-2/50',
+          ? 'text-content-primary bg-brand-card border border-border font-medium'
+          : 'text-content-secondary hover:text-content-primary hover:bg-surface-2/70',
       ].join(' ')}
     >
       {label}
@@ -84,7 +86,7 @@ export default function Navbar() {
       <button
         type="button"
         onClick={() => setMenuOpen((v) => !v)}
-        className="w-8 h-8 rounded-full bg-sky-600/20 border border-sky-500/30 flex items-center justify-center text-sky-300 font-semibold text-sm"
+        className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-500 font-semibold text-sm"
         aria-label="Open user menu"
       >
         {initial}
@@ -109,7 +111,7 @@ export default function Navbar() {
     <button
       type="button"
       onClick={() => router.push('/auth')}
-      className="text-sm px-3 py-1.5 rounded-lg border border-border text-slate-300 hover:border-sky-500/50 hover:text-white transition-colors"
+      className="text-sm px-3 py-1.5 rounded-lg border border-border text-content-secondary hover:border-amber-500/60 hover:text-content-primary transition-colors"
     >
       Sign In
     </button>
@@ -117,12 +119,12 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 h-12 md:h-14 bg-surface-1/80 backdrop-blur-md border-b border-border">
+      <nav className="fixed top-0 left-0 right-0 z-50 h-12 md:h-14 bg-surface-1/85 backdrop-blur-md border-b border-border">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-full">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center">
-              <div className="w-7 h-7 bg-sky-600 rounded-md flex items-center justify-center text-white font-bold text-sm">E</div>
-              <span className="text-content-primary font-semibold text-base ml-2">ET Radar</span>
+              <Image src={favicon} alt="ET Radar logo" width={28} height={28} className="rounded-md" />
+              <span className="text-content-primary font-semibold text-base ml-2 tracking-wide">ET Radar</span>
             </Link>
 
             <button
@@ -131,9 +133,9 @@ export default function Navbar() {
               className="md:hidden w-8 h-8 flex flex-col items-center justify-center gap-1.5"
               aria-label="Open navigation menu"
             >
-              <span className="w-5 h-0.5 bg-slate-400" />
-              <span className="w-5 h-0.5 bg-slate-400" />
-              <span className="w-5 h-0.5 bg-slate-400" />
+              <span className="w-5 h-0.5 bg-content-secondary" />
+              <span className="w-5 h-0.5 bg-content-secondary" />
+              <span className="w-5 h-0.5 bg-content-secondary" />
             </button>
           </div>
 
@@ -168,13 +170,13 @@ export default function Navbar() {
           >
             <div className="h-14 px-4 border-b border-border flex items-center justify-between">
               <Link href="/" className="flex items-center" onClick={() => setDrawerOpen(false)}>
-                <div className="w-7 h-7 bg-sky-600 rounded-md flex items-center justify-center text-white font-bold text-sm">E</div>
+                <Image src={favicon} alt="ET Radar logo" width={28} height={28} className="rounded-md" />
                 <span className="text-content-primary font-semibold text-base ml-2">ET Radar</span>
               </Link>
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
-                className="w-8 h-8 rounded-md hover:bg-surface-2 text-slate-300"
+                className="w-8 h-8 rounded-md hover:bg-surface-2 text-content-secondary"
                 aria-label="Close navigation menu"
               >
                 ×
@@ -201,7 +203,7 @@ export default function Navbar() {
                   <button
                     type="button"
                     onClick={handleSignOut}
-                    className="w-full text-left text-red-400 text-sm px-3 py-2 rounded-lg hover:bg-surface-2"
+                    className="w-full text-left text-red-500 text-sm px-3 py-2 rounded-lg hover:bg-surface-2"
                   >
                     Sign Out
                   </button>
@@ -213,7 +215,7 @@ export default function Navbar() {
                     setDrawerOpen(false)
                     router.push('/auth')
                   }}
-                  className="w-full bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium px-3 py-2 rounded-lg transition-colors"
+                  className="w-full bg-amber-500 hover:bg-amber-400 text-black text-sm font-medium px-3 py-2 rounded-lg transition-colors"
                 >
                   Sign In
                 </button>

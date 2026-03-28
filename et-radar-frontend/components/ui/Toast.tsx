@@ -12,10 +12,10 @@ export interface ToastItem {
 }
 
 const TOAST_STYLES: Record<ToastType, string> = {
-  success: 'bg-sky-500/20 border-sky-500/30 text-sky-300',
+  success: 'bg-[#d4af37]/20 border-[#d4af37]/30 text-[#d4af37]',
   error: 'bg-red-500/20 border-red-500/30 text-red-300',
   warning: 'bg-amber-500/20 border-amber-500/30 text-amber-300',
-  info: 'bg-blue-500/20 border-blue-500/30 text-blue-300',
+  info: 'bg-[#d4af37]/20 border-[#d4af37]/30 text-[#d4af37]',
 }
 
 const TOAST_ICONS: Record<ToastType, string> = {
