@@ -102,34 +102,137 @@ PATTERN_FUNCTIONS = {
 
 # ── Back-test function ────────────────────────────────────────────────────────
 
-def backtest_pattern(detect_fn, df: pd.DataFrame, forward_days: int = 30) -> dict:
-    """Backtest pattern — excludes last 30 days to avoid lookahead bias."""
-    if len(df) < 20:
-        return {"occurrences": 0, "success_rate": 0.0, "avg_return_pct": 0.0}
-    forward_days = min(forward_days, len(df)//4)
-    results, returns = [], []
-    # Exclude last 30 days (no lookahead bias)
-    end_idx = len(df) - forward_days - 30
-    if end_idx <= 200:
-        return {"occurrences": 0, "success_rate": 0.0, "avg_return_pct": 0.0}
-    start_idx = min(10, end_idx - 1)
-    for i in range(start_idx, end_idx):
-        window = df.iloc[:i + 1]
-        try:
-            if detect_fn(window):
-                entry = float(df["close"].iloc[i])
-                exit_p = float(df["close"].iloc[i + forward_days])
-                results.append(exit_p > entry)
-                returns.append(((exit_p - entry) / entry) * 100)
-        except Exception:
-            continue
-    if not results:
-        return {"occurrences": 0, "success_rate": 0.0, "avg_return_pct": 0.0}
+def _empty_backtest(note: str, forward_days: int = 10) -> dict:
     return {
-        "occurrences": len(results),
-        "success_rate": round(sum(results) / len(results), 2),
-        "avg_return_pct": round(float(np.mean(returns)), 1)
+        "occurrences": 0,
+        "success_rate": 0.0,
+        "avg_return_pct": 0.0,
+        "win_rate": None,
+        "avg_return": None,
+        "best_return": None,
+        "worst_return": None,
+        "sample_size": 0,
+        "forward_days": forward_days,
+        "note": note,
     }
+
+
+def _find_historical_signals(df: pd.DataFrame, pattern_type: str) -> list[int]:
+    """Lightweight historical pattern occurrence finder over OHLCV windows."""
+    signals: list[int] = []
+    closes = df["close"].to_numpy(dtype=float)
+    highs = df["high"].to_numpy(dtype=float)
+    lows = df["low"].to_numpy(dtype=float)
+    vols = df["volume"].to_numpy(dtype=float)
+    n = len(closes)
+
+    if pattern_type == "52_week_breakout":
+        for i in range(252, n):
+            resistance = float(np.max(highs[i - 252:i]))
+            avg_vol = float(np.mean(vols[max(0, i - 20):i]))
+            if closes[i] > resistance * 1.01 and (avg_vol == 0 or vols[i] >= avg_vol * 1.2):
+                signals.append(i)
+
+    elif pattern_type == "support_bounce":
+        for i in range(20, n):
+            support = float(np.min(lows[i - 20:i]))
+            if lows[i] <= support * 1.01 and closes[i] >= support * 1.02:
+                signals.append(i)
+
+    elif pattern_type == "golden_cross":
+        ma20 = pd.Series(closes).rolling(20).mean().to_numpy()
+        ma50 = pd.Series(closes).rolling(50).mean().to_numpy()
+        for i in range(51, n):
+            if ma20[i - 1] <= ma50[i - 1] and ma20[i] > ma50[i]:
+                signals.append(i)
+
+    elif pattern_type == "death_cross":
+        ma20 = pd.Series(closes).rolling(20).mean().to_numpy()
+        ma50 = pd.Series(closes).rolling(50).mean().to_numpy()
+        for i in range(51, n):
+            if ma20[i - 1] >= ma50[i - 1] and ma20[i] < ma50[i]:
+                signals.append(i)
+
+    elif pattern_type == "rsi_bounce":
+        delta = pd.Series(closes).diff()
+        gain = delta.clip(lower=0).rolling(14).mean()
+        loss = (-delta.clip(upper=0)).rolling(14).mean()
+        rs = gain / loss.replace(0, 1e-9)
+        rsi = (100 - 100 / (1 + rs)).to_numpy()
+        for i in range(15, n):
+            if rsi[i - 1] < 30 and rsi[i] > 30:
+                signals.append(i)
+
+    return signals
+
+
+def _backtest_pattern_from_df(df: pd.DataFrame, pattern_type: str, symbol: str, forward_days: int = 10) -> dict:
+    if len(df) < forward_days + 20:
+        return _empty_backtest("Insufficient history", forward_days)
+
+    signal_indices = _find_historical_signals(df, pattern_type)
+    outcomes: list[float] = []
+
+    for idx in signal_indices:
+        future_idx = idx + forward_days
+        if future_idx < len(df):
+            entry_price = float(df["close"].iloc[idx])
+            exit_price = float(df["close"].iloc[future_idx])
+            pct_return = (exit_price - entry_price) / max(entry_price, 1e-9) * 100
+            outcomes.append(float(pct_return))
+
+    if not outcomes:
+        return _empty_backtest("No historical signals found", forward_days)
+
+    wins = [r for r in outcomes if r > 0]
+    win_rate = round(len(wins) / len(outcomes) * 100, 1)
+    avg_return = round(float(np.mean(outcomes)), 2)
+    best_return = round(float(np.max(outcomes)), 2)
+    worst_return = round(float(np.min(outcomes)), 2)
+
+    return {
+        "occurrences": len(outcomes),
+        "success_rate": round(win_rate / 100.0, 2),
+        "avg_return_pct": avg_return,
+        "win_rate": win_rate,
+        "avg_return": avg_return,
+        "best_return": best_return,
+        "worst_return": worst_return,
+        "sample_size": len(outcomes),
+        "forward_days": forward_days,
+        "note": f"Based on {len(outcomes)} historical occurrences on {symbol}",
+    }
+
+
+async def backtest_pattern(db, symbol: str, pattern_type: str, forward_days: int = 10) -> dict:
+    """Backtest a specific pattern against existing OHLCV history for one symbol."""
+    stock_result = await db.execute(select(Stock).where(Stock.symbol == symbol.upper()))
+    stock = stock_result.scalar_one_or_none()
+    if not stock:
+        return _empty_backtest("Unknown symbol", forward_days)
+
+    result = await db.execute(
+        select(OHLCV)
+        .where(OHLCV.stock_id == stock.id)
+        .order_by(OHLCV.date.asc())
+    )
+    rows = result.scalars().all()
+
+    if len(rows) < forward_days + 20:
+        return _empty_backtest("Insufficient history", forward_days)
+
+    df = pd.DataFrame([
+        {
+            "date": r.date,
+            "close": float(r.close),
+            "high": float(r.high),
+            "low": float(r.low),
+            "volume": float(r.volume),
+        }
+        for r in rows
+    ]).set_index("date")
+
+    return _backtest_pattern_from_df(df, pattern_type, symbol.upper(), forward_days)
 
 
 # ── Explanation function ──────────────────────────────────────────────────────
@@ -232,7 +335,7 @@ async def analyse_stock_patterns(symbol: str, db) -> list[dict]:
         except Exception:
             detected = False
 
-        bt = backtest_pattern(detect_fn, df)
+        bt = _backtest_pattern_from_df(df, pattern_key, symbol, forward_days=10)
 
         if detected:
             try:

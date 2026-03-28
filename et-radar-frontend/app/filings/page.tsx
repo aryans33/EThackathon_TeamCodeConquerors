@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 
 type ApiFiling = {
-  id: number
-  date: string
+  symbol: string
+  company_name: string
+  title: string
   category: string
-  headline: string
+  filing_date: string
+  confidence_score: number
+  summary: string
   source_url: string | null
-  stock_symbol: string | null
-  stock_name: string | null
 }
 
 type FilingCard = {
@@ -19,31 +20,28 @@ type FilingCard = {
   symbol: string
   company: string
   category: string
-  headline: string
-  detail: string
+  title: string
+  summary: string
   date: string
   confidence: number
   sourceUrl?: string | null
 }
 
 const DEMO_FILINGS: FilingCard[] = [
-  { id: 1, symbol: 'TATAMOTORS', company: 'Tata Motors Ltd', category: 'Earnings Beat', headline: 'Q3 PAT up 48% YoY, beats street estimates by 12%', detail: 'Strong EV sales drove margin expansion beyond analyst consensus', date: '2 days ago', confidence: 84 },
-  { id: 2, symbol: 'HDFCBANK', company: 'HDFC Bank', category: 'Bulk Deal', headline: 'Goldman Sachs acquires 1.5cr shares at ₹1,642', detail: 'Institutional accumulation at key support level signals confidence', date: '3 days ago', confidence: 76 },
-  { id: 3, symbol: 'RELIANCE', company: 'Reliance Industries Ltd', category: 'Expansion', headline: 'Board approves ₹75,000 Cr green energy capex over 3 years', detail: 'Large capex signals long-term revenue visibility in renewables', date: '1 day ago', confidence: 71 },
-  { id: 4, symbol: 'SBIN', company: 'State Bank of India', category: 'Earnings Miss', headline: 'Q3 NPA provisions surge 22%, profit below estimates', detail: 'Asset quality deterioration worse than street expectations', date: '4 days ago', confidence: 68 },
-  { id: 5, symbol: 'INFY', company: 'Infosys Ltd', category: 'Management Change', headline: 'COO resignation announced post market hours', detail: 'Key leadership exit may signal strategic uncertainty ahead', date: '2 days ago', confidence: 61 },
-  { id: 6, symbol: 'TCS', company: 'Tata Consultancy Services', category: 'Earnings Beat', headline: 'Q3 deal wins at $10.2B TCV, highest in 6 quarters', detail: 'Strong deal pipeline supports revenue growth visibility for FY26', date: '5 days ago', confidence: 88 },
-  { id: 7, symbol: 'ADANIENT', company: 'Adani Enterprises', category: 'Bulk Deal', headline: 'LIC increases stake by 2.1%, buys 3.2cr shares', detail: 'Government institution buying signals long-term confidence', date: '1 day ago', confidence: 79 },
+  { id: 1, symbol: 'TATAMOTORS', company: 'Tata Motors Limited', category: 'Earnings', title: 'Board meeting to consider Q3 results', summary: 'Board meeting scheduled for quarterly results and margin outlook update with management commentary.', date: '2 days ago', confidence: 84 },
+  { id: 2, symbol: 'HDFCBANK', company: 'HDFC Bank Limited', category: 'Bulk Deals', title: 'Bulk deal: Goldman Sachs acquires 1.2cr shares', summary: 'Large institutional acquisition disclosed through exchange filing, indicating accumulation at current levels.', date: '3 days ago', confidence: 76 },
+  { id: 3, symbol: 'RELIANCE', company: 'Reliance Industries Limited', category: 'Expansion', title: 'Capex announcement: INR 8,000cr greenfield plant', summary: 'Board approved multi-year expansion capex for new capacity with phased commissioning timeline.', date: '1 day ago', confidence: 73 },
+  { id: 4, symbol: 'SBIN', company: 'State Bank of India', category: 'Management', title: 'Management change: CFO resignation announced', summary: 'Company disclosed CFO resignation with interim transition committee and search process details.', date: '4 days ago', confidence: 69 },
+  { id: 5, symbol: 'INFY', company: 'Infosys Limited', category: 'Earnings', title: 'Pre-quarter update indicates stable order book', summary: 'Company shared pre-quarter business update and reiterated guidance on revenue and operating margin.', date: '2 days ago', confidence: 82 },
+  { id: 6, symbol: 'TCS', company: 'Tata Consultancy Services Limited', category: 'Management', title: 'Board appoints new independent director', summary: 'Board approved appointment of independent director with sector expertise effective next month.', date: '5 days ago', confidence: 69 },
+  { id: 7, symbol: 'BAJFINANCE', company: 'Bajaj Finance Limited', category: 'Bulk Deals', title: 'Block trade: domestic mutual fund raises stake', summary: 'Domestic institution disclosed block trade purchase in the company at a marginal premium.', date: '1 day ago', confidence: 76 },
 ]
 
 const CATEGORY_BADGES: Record<string, { bg: string; text: string }> = {
-  'Earnings Beat': { bg: '#166534', text: '#86efac' },
-  'Earnings Miss': { bg: '#7f1d1d', text: '#fca5a5' },
-  'Bulk Deal': { bg: '#1e3a5f', text: '#93c5fd' },
+  Earnings: { bg: '#166534', text: '#86efac' },
+  'Bulk Deals': { bg: '#1e3a5f', text: '#93c5fd' },
   Expansion: { bg: '#3b0764', text: '#d8b4fe' },
-  'Management Change': { bg: '#7c2d12', text: '#fdba74' },
-  Regulatory: { bg: '#713f12', text: '#fde047' },
-  Dividend: { bg: '#134e4a', text: '#5eead4' },
+  Management: { bg: '#7c2d12', text: '#fdba74' },
 }
 
 type FilterKey = 'All' | 'Earnings' | 'Bulk Deals' | 'Management' | 'Expansion'
@@ -58,47 +56,25 @@ function toRelativeDate(dateStr: string): string {
   return `${days} days ago`
 }
 
-function detailFromCategory(category: string): string {
-  if (category === 'Earnings Beat') return 'Results came in above expectations with positive near-term momentum cues.'
-  if (category === 'Earnings Miss') return 'Weaker-than-expected numbers may pressure sentiment in upcoming sessions.'
-  if (category === 'Bulk Deal') return 'Large institutional activity often signals evolving conviction at current levels.'
-  if (category === 'Expansion') return 'Capacity and growth investments may improve long-term revenue visibility.'
-  if (category === 'Management Change') return 'Leadership transition introduces uncertainty until strategic continuity is clear.'
-  if (category === 'Regulatory') return 'Policy and compliance changes could impact guidance and execution timelines.'
-  if (category === 'Dividend') return 'Capital return signal may support shareholder confidence and near-term demand.'
-  return 'AI detected a notable filing that may influence short-term stock behavior.'
-}
-
-function confidenceFromCategory(category: string): number {
-  if (category === 'Earnings Beat') return 84
-  if (category === 'Earnings Miss') return 68
-  if (category === 'Bulk Deal') return 76
-  if (category === 'Expansion') return 71
-  if (category === 'Management Change') return 61
-  if (category === 'Regulatory') return 66
-  if (category === 'Dividend') return 72
-  return 70
-}
-
 function normalizeApiRows(rows: ApiFiling[]): FilingCard[] {
-  return rows.map((r) => ({
-    id: r.id,
-    symbol: r.stock_symbol || 'NSE',
-    company: r.stock_name || 'Listed Company',
+  return rows.map((r, idx) => ({
+    id: idx + 1,
+    symbol: r.symbol,
+    company: r.company_name || r.symbol,
     category: r.category,
-    headline: r.headline,
-    detail: detailFromCategory(r.category),
-    date: toRelativeDate(r.date),
-    confidence: confidenceFromCategory(r.category),
+    title: r.title,
+    summary: r.summary,
+    date: toRelativeDate(r.filing_date),
+    confidence: r.confidence_score,
     sourceUrl: r.source_url,
   }))
 }
 
 function matchesFilter(filing: FilingCard, activeFilter: FilterKey): boolean {
   if (activeFilter === 'All') return true
-  if (activeFilter === 'Earnings') return filing.category === 'Earnings Beat' || filing.category === 'Earnings Miss'
-  if (activeFilter === 'Bulk Deals') return filing.category === 'Bulk Deal'
-  if (activeFilter === 'Management') return filing.category === 'Management Change'
+  if (activeFilter === 'Earnings') return filing.category === 'Earnings'
+  if (activeFilter === 'Bulk Deals') return filing.category === 'Bulk Deals'
+  if (activeFilter === 'Management') return filing.category === 'Management'
   return filing.category === 'Expansion'
 }
 
@@ -236,8 +212,8 @@ export default function FilingsPage() {
                   </span>
                 </div>
 
-                <h2 className="text-white text-[15px] font-semibold mt-[10px]">{f.headline}</h2>
-                <p className="text-[#9ca3af] text-[13px] mt-1">{f.detail}</p>
+                <h2 className="text-white text-[15px] font-semibold mt-[10px]">{f.title}</h2>
+                <p className="text-[#9ca3af] text-[13px] mt-1">{f.summary}</p>
                 {f.sourceUrl && (
                   <a
                     href={f.sourceUrl}

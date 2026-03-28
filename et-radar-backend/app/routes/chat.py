@@ -1,5 +1,7 @@
 """Chat route — SSE streaming with Groq via thread pool."""
 
+import json
+
 from fastapi import APIRouter, Depends, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -7,11 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db, AsyncSessionLocal
 from app.agents.rag_chat import (
-    retrieve_relevant_signals,
-    retrieve_symbol_signals,
-    get_portfolio_summary,
     get_chat_history,
-    get_top_signals_today,
+    build_context_with_citations,
     stream_groq,
     RAG_SYSTEM,
 )
@@ -52,15 +51,13 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
         return Response(content="Message cannot be empty", status_code=400)
 
     # Gather context
-    relevant_signals = await retrieve_relevant_signals(request.message, db)
-    symbol_signals = await retrieve_symbol_signals(request.message, db)
-    chat_history = await get_chat_history(request.session_id, db)
-    top_signals = await get_top_signals_today(db)
-    portfolio_summary = (
-        await get_portfolio_summary(request.session_id, db)
-        if request.include_portfolio
-        else None
+    context, citations = await build_context_with_citations(
+        db=db,
+        user_message=request.message,
+        session_id=request.session_id,
+        include_portfolio=request.include_portfolio,
     )
+    chat_history = await get_chat_history(request.session_id, db)
 
     # Save user message
     user_msg_db = ChatMessage(
@@ -71,23 +68,12 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
     db.add(user_msg_db)
     await db.commit()
 
-    # Build system context
-    context_parts = [RAG_SYSTEM]
-    if top_signals:
-        context_parts.append("TODAY'S TOP SIGNALS:\n" + "\n".join(top_signals))
-
-    # Merge symbol-specific signals first, then general RAG signals
-    all_signals = {s["symbol"]: s for s in (symbol_signals + relevant_signals)}.values()
-    if all_signals:
-        context_parts.append(
-            "RELEVANT SIGNALS:\n" +
-            "\n".join(f"{s['symbol']}: {s['summary']} (confidence: {s['confidence']}%)"
-                      for s in all_signals)
-        )
-    if portfolio_summary:
-        context_parts.append(f"USER PORTFOLIO:\n{portfolio_summary}")
-
-    full_system_context = "\n\n".join(context_parts)
+    full_system_context = (
+        f"{RAG_SYSTEM}\n\n"
+        "IMPORTANT: When referencing context facts, include citation tags in text using [CITE:id]. "
+        "Only use citation ids provided in the context section below. Do not invent ids.\n\n"
+        f"CONTEXT WITH SOURCE IDS:\n{context}"
+    )
 
     # Build message history + current message
     messages = list(chat_history)
@@ -97,9 +83,14 @@ async def chat(request: ChatRequest, db: AsyncSession = Depends(get_db)):
     full_response_holder = {"text": ""}
 
     async def generate():
+        # Send citations metadata first so frontend can render source panel.
+        yield f"data: {json.dumps({'type': 'citations', 'citations': citations})}\n\n"
+
         async for token in stream_groq(messages, full_system_context):
             full_response_holder["text"] += token
-            yield token
+            yield f"data: {json.dumps({'type': 'token', 'content': token})}\n\n"
+
+        yield "data: [DONE]\n\n"
 
         # Save assistant response using a new DB session
         async with AsyncSessionLocal() as save_db:

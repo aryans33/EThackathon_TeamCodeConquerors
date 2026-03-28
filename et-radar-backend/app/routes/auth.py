@@ -56,18 +56,14 @@ def create_access_token(user_id: int, email: str) -> str:
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
-@router.post("/signup", response_model=AuthResponse)
-async def signup(req: SignupRequest, db: AsyncSession = Depends(get_db)):
-    """Create a new user account."""
-    
-    # Check if user exists
+async def _create_user_and_token(req: SignupRequest, db: AsyncSession) -> AuthResponse:
+    """Shared registration logic for signup/register route aliases."""
     existing = await db.scalar(
         select(User).where(User.email == req.email.lower())
     )
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # Create user
+
     user = User(
         name=req.name,
         email=req.email.lower(),
@@ -76,10 +72,9 @@ async def signup(req: SignupRequest, db: AsyncSession = Depends(get_db)):
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    
-    # Generate token
+
     token = create_access_token(user.id, user.email)
-    
+
     return AuthResponse(
         access_token=token,
         user={
@@ -88,6 +83,18 @@ async def signup(req: SignupRequest, db: AsyncSession = Depends(get_db)):
             "email": user.email
         }
     )
+
+
+@router.post("/signup", response_model=AuthResponse)
+async def signup(req: SignupRequest, db: AsyncSession = Depends(get_db)):
+    """Create a new user account."""
+    return await _create_user_and_token(req, db)
+
+
+@router.post("/register", response_model=AuthResponse)
+async def register(req: SignupRequest, db: AsyncSession = Depends(get_db)):
+    """Alias route for registration used by some frontend flows."""
+    return await _create_user_and_token(req, db)
 
 
 @router.post("/login", response_model=AuthResponse)

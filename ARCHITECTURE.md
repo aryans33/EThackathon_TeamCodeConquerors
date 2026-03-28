@@ -53,6 +53,8 @@ Primary routes:
 - `/api/portfolio/*`
 - `/api/chat/` (streaming)
 - `/api/video/daily-script`
+- `/api/video/fii-dii-flows`
+- `/api/video/ipo-tracker`
 - `/api/status`, `/api/admin/groq-usage`, `/health`
 
 ### 3.2 AI and Analytics Layer
@@ -62,7 +64,8 @@ Primary routes:
 - `portfolio_analyser.py`: PDF parsing, Indian MF validation, overlap and rebalancing analysis, robust XIRR fallback.
 - Video script generator route:
   - fetches top gainers and latest signal from DB,
-  - adds index and flow context,
+  - fetches latest filing context with hardcoded fallback,
+  - adds index, flow, and IPO context,
   - calls Groq for structured scene JSON,
   - falls back to deterministic demo script if parsing or LLM fails.
 
@@ -149,7 +152,8 @@ Key routes in `et-radar-frontend/app`:
 3. On miss, backend builds market context from DB plus constants.
 4. Groq generates JSON scene script.
 5. Backend sanitizes and parses response; fallback on any error.
-6. Payload cached and returned to frontend player.
+6. Payload includes six scene support (`ipo_tracker` before `outro`) and latest filing context.
+7. Payload cached and returned to frontend player.
 
 ## 7. Deployment and Demo Notes
 

@@ -6,13 +6,14 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
 
-type VisualType = 'nifty_summary' | 'race_chart' | 'fii_dii' | 'signal_spotlight' | 'outro'
+type VisualType = 'nifty_summary' | 'race_chart' | 'fii_dii' | 'signal_spotlight' | 'ipo_tracker' | 'outro'
 
 type Scene = {
   id: number
@@ -31,7 +32,59 @@ type DailyScript = {
     fii_flow: number
     dii_flow: number
     top_signal: { symbol: string; pattern: string; confidence: number }
+    latest_filing?: { symbol: string; category: string; title: string; date: string; summary: string }
+    fii_dii?: FiiDiiPayload
+    ipo_tracker?: IpoTrackerPayload
   }
+}
+
+type FiiDiiFlow = {
+  date: string
+  fii_net: number
+  dii_net: number
+  fii_cumulative: number
+  dii_cumulative: number
+  market_mood: 'bullish' | 'bearish'
+}
+
+type FiiDiiPayload = {
+  flows: FiiDiiFlow[]
+  fii_10d_net: number
+  dii_10d_net: number
+  fii_trend: string
+  summary: string
+  data_source: string
+  generated_at: string
+}
+
+type UpcomingIpo = {
+  company: string
+  open_date: string
+  close_date: string
+  price_band: string
+  lot_size: number | null
+  issue_size: string
+  sector: string
+  gmp: string
+  subscription: string
+  rating: string
+}
+
+type RecentIpo = {
+  company: string
+  list_date: string
+  issue_price: number
+  list_price: number
+  current_price: number
+  return_pct: number
+  sector: string
+}
+
+type IpoTrackerPayload = {
+  upcoming: UpcomingIpo[]
+  recently_listed: RecentIpo[]
+  data_source: string
+  generated_at: string
 }
 
 const DEMO_SCRIPT: DailyScript = {
@@ -70,6 +123,14 @@ const DEMO_SCRIPT: DailyScript = {
     },
     {
       id: 5,
+      duration_sec: 12,
+      visual_type: 'ipo_tracker',
+      headline: 'IPO Watch',
+      voiceover:
+        'In IPO watch, Ather Energy is opening soon with strong gray market traction, while recently listed names remain mixed. Track price band discipline and listing momentum.',
+    },
+    {
+      id: 6,
       duration_sec: 10,
       visual_type: 'outro',
       headline: 'Powered by ET Radar',
@@ -90,6 +151,13 @@ const DEMO_SCRIPT: DailyScript = {
     fii_flow: 1240,
     dii_flow: -340,
     top_signal: { symbol: 'BAJFINANCE', pattern: 'Bullish Trapezoid', confidence: 0.84 },
+    latest_filing: {
+      symbol: 'RELIANCE',
+      category: 'Earnings',
+      title: 'Board approves Q4 capex roadmap and retail expansion update',
+      date: new Date().toISOString().slice(0, 10),
+      summary: 'Management highlighted strong refining margins and maintained FY growth guidance.',
+    },
   },
 }
 
@@ -215,9 +283,60 @@ function FiiDiiScene({ script }: { script: DailyScript }) {
   )
 }
 
+function FiiDiiChart({ payload }: { payload: FiiDiiPayload }) {
+  return (
+    <div className='rounded-xl border border-[#30363d] bg-[#161b22] p-4 mt-4'>
+      <h3 className='text-sm font-medium text-slate-100 mb-3'>FII / DII Net Flows (INR Crore)</h3>
+      <ResponsiveContainer width='100%' height={180}>
+        <BarChart data={payload.flows}>
+          <XAxis dataKey='date' tick={{ fontSize: 11, fill: '#9ca3af' }} />
+          <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} />
+          <Tooltip formatter={(v: any) => `INR ${Number(v).toLocaleString('en-IN')} Cr`} />
+          <Legend />
+          <Bar dataKey='fii_net' name='FII Net' fill='#3B82F6' radius={[3, 3, 0, 0]} />
+          <Bar dataKey='dii_net' name='DII Net' fill='#10B981' radius={[3, 3, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+      <p className='text-xs text-slate-400 mt-2'>{payload.summary}</p>
+    </div>
+  )
+}
+
+function IpoCard({ ipo }: { ipo: UpcomingIpo }) {
+  return (
+    <div className='rounded-lg border border-slate-700 bg-slate-900/30 p-3 text-sm'>
+      <div className='font-medium text-slate-100'>{ipo.company}</div>
+      <div className='text-slate-400 text-xs mt-0.5'>{ipo.sector}</div>
+      <div className='flex justify-between mt-2 text-slate-300'>
+        <span>{ipo.price_band}</span>
+        <span className='text-green-400 font-medium'>{ipo.gmp}</span>
+      </div>
+      <div className='text-xs text-slate-400 mt-1'>
+        {ipo.open_date} to {ipo.close_date} · {ipo.issue_size}
+      </div>
+      <span
+        className={`text-xs px-2 py-0.5 rounded-full mt-2 inline-block ${
+          ipo.rating === 'Subscribe' ? 'bg-green-900/40 text-green-300' : 'bg-amber-900/40 text-amber-300'
+        }`}
+      >
+        {ipo.rating}
+      </span>
+    </div>
+  )
+}
+
 function SignalSpotlightScene({ script }: { script: DailyScript }) {
   const target = Math.round(script.data.top_signal.confidence * 100)
   const [display, setDisplay] = useState(0)
+  const latestFiling =
+    script.data.latest_filing ??
+    {
+      symbol: 'RELIANCE',
+      category: 'Earnings',
+      title: 'Board approves Q4 capex roadmap and retail expansion update',
+      date: new Date().toISOString().slice(0, 10),
+      summary: 'Management highlighted strong refining margins and maintained FY growth guidance.',
+    }
 
   useEffect(() => {
     let i = 0
@@ -262,6 +381,78 @@ function SignalSpotlightScene({ script }: { script: DailyScript }) {
           {display}%
         </div>
       </div>
+      <div style={{ marginTop: 10, width: '90%', maxWidth: 620, border: '1px solid #334155', borderRadius: 10, background: '#0f172a', padding: '10px 12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <div style={{ fontSize: 11, color: '#93c5fd', letterSpacing: 1, textTransform: 'uppercase' }}>Latest Filing</div>
+          <div style={{ fontSize: 11, color: '#94a3b8' }}>{latestFiling.date}</div>
+        </div>
+        <div style={{ marginTop: 4, color: '#f8fafc', fontSize: 13, fontWeight: 700 }}>
+          {latestFiling.symbol} · {latestFiling.category}
+        </div>
+        <div style={{ marginTop: 3, color: '#cbd5e1', fontSize: 12 }}>{latestFiling.title}</div>
+      </div>
+    </div>
+  )
+}
+
+function IpoTrackerScene({ payload }: { payload: IpoTrackerPayload | null }) {
+  const hasData = !!payload && (payload.upcoming.length > 0 || payload.recently_listed.length > 0)
+
+  if (!hasData) {
+    return (
+      <div style={{ height: 360, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: '100%', maxWidth: 620, border: '1px solid #334155', borderRadius: 12, padding: 16, background: '#0f172a', textAlign: 'center' }}>
+          <div style={{ color: '#e2e8f0', fontWeight: 700 }}>IPO data updates daily at market open</div>
+          <div style={{ color: '#94a3b8', marginTop: 6, fontSize: 13 }}>Try regenerating after the next exchange refresh window.</div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ height: 360, padding: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={{ border: '1px solid #334155', borderRadius: 10, background: '#0f172a', padding: 10, overflowY: 'auto' }}>
+        <div style={{ color: '#cbd5e1', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Upcoming IPOs</div>
+        <div style={{ display: 'grid', gap: 8 }}>
+          {payload?.upcoming.map((ipo) => (
+            <div key={ipo.company} style={{ border: '1px solid #334155', borderRadius: 8, background: '#111827', padding: 8 }}>
+              <div style={{ color: '#f8fafc', fontSize: 13, fontWeight: 700 }}>{ipo.company}</div>
+              <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 3 }}>{ipo.price_band}</div>
+              <div style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>{ipo.open_date} to {ipo.close_date}</div>
+              <div style={{ marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#22c55e', fontSize: 12, fontWeight: 600 }}>{ipo.gmp}</span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    padding: '2px 8px',
+                    borderRadius: 999,
+                    background: ipo.rating === 'Subscribe' ? '#14532d' : '#78350f',
+                    color: ipo.rating === 'Subscribe' ? '#86efac' : '#fcd34d',
+                  }}
+                >
+                  {ipo.rating}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ border: '1px solid #334155', borderRadius: 10, background: '#0f172a', padding: 10, overflowY: 'auto' }}>
+        <div style={{ color: '#cbd5e1', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Recent Listings</div>
+        <div style={{ display: 'grid', gap: 8 }}>
+          {payload?.recently_listed.map((ipo) => (
+            <div key={ipo.company} style={{ border: '1px solid #334155', borderRadius: 8, background: '#111827', padding: 8 }}>
+              <div style={{ color: '#f8fafc', fontSize: 13, fontWeight: 700 }}>{ipo.company}</div>
+              <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 4 }}>Issue: INR {ipo.issue_price.toLocaleString('en-IN')}</div>
+              <div style={{ color: '#94a3b8', fontSize: 12 }}>Current: INR {ipo.current_price.toLocaleString('en-IN')}</div>
+              <div style={{ marginTop: 4, fontSize: 12, fontWeight: 700, color: ipo.return_pct >= 0 ? '#22c55e' : '#ef4444' }}>
+                Return: {ipo.return_pct >= 0 ? '+' : ''}{ipo.return_pct}%
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
@@ -303,6 +494,8 @@ export default function VideoPage() {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [fadeIn, setFadeIn] = useState(true)
+  const [fiiDiiData, setFiiDiiData] = useState<FiiDiiPayload | null>(null)
+  const [ipoData, setIpoData] = useState<IpoTrackerPayload | null>(null)
   const speechRef = useRef<SpeechSynthesis | null>(null)
 
   const activeScript = script || DEMO_SCRIPT
@@ -328,13 +521,48 @@ export default function VideoPage() {
     }, 100)
 
     try {
-      const res = await fetch('http://localhost:8000/api/video/daily-script')
-      if (!res.ok) throw new Error('video api unavailable')
-      const data = await res.json()
+      const [scriptRes, fiiRes, ipoRes] = await Promise.all([
+        fetch('http://localhost:8000/api/video/daily-script'),
+        fetch('http://localhost:8000/api/video/fii-dii-flows'),
+        fetch('http://localhost:8000/api/video/ipo-tracker'),
+      ])
+
+      if (!scriptRes.ok) throw new Error('video api unavailable')
+      const data = await scriptRes.json()
       if (data?.scenes?.length) {
-        setScript(data)
+        const hasIpo = data.scenes.some((s: Scene) => s.visual_type === 'ipo_tracker')
+        if (!hasIpo) {
+          const outroIdx = data.scenes.findIndex((s: Scene) => s.visual_type === 'outro')
+          const ipoScene: Scene = {
+            id: 999,
+            duration_sec: 12,
+            visual_type: 'ipo_tracker',
+            headline: 'IPO Watch',
+            voiceover: 'IPO window remains active with upcoming issues and mixed listing performance.',
+          }
+
+          if (outroIdx >= 0) {
+            const nextScenes = [...data.scenes]
+            nextScenes.splice(outroIdx, 0, ipoScene)
+            setScript({ ...data, scenes: nextScenes })
+          } else {
+            setScript({ ...data, scenes: [...data.scenes, ipoScene] })
+          }
+        } else {
+          setScript(data)
+        }
       } else {
         setScript(DEMO_SCRIPT)
+      }
+
+      if (fiiRes.ok) {
+        const fii = await fiiRes.json()
+        setFiiDiiData(fii)
+      }
+
+      if (ipoRes.ok) {
+        const ipo = await ipoRes.json()
+        setIpoData(ipo)
       }
     } catch {
       setScript(DEMO_SCRIPT)
@@ -342,6 +570,35 @@ export default function VideoPage() {
       clearInterval(fake)
       setGenProgress(100)
       setTimeout(() => setLoadingScript(false), 300)
+    }
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+
+    ;(async () => {
+      try {
+        const [fiiRes, ipoRes] = await Promise.all([
+          fetch('http://localhost:8000/api/video/fii-dii-flows'),
+          fetch('http://localhost:8000/api/video/ipo-tracker'),
+        ])
+
+        if (mounted && fiiRes.ok) {
+          const fii = await fiiRes.json()
+          setFiiDiiData(fii)
+        }
+
+        if (mounted && ipoRes.ok) {
+          const ipo = await ipoRes.json()
+          setIpoData(ipo)
+        }
+      } catch {
+        // Keep silent fallback for demo reliability.
+      }
+    })()
+
+    return () => {
+      mounted = false
     }
   }, [])
 
@@ -428,6 +685,7 @@ export default function VideoPage() {
     if (scene.visual_type === 'race_chart') return <RaceChartScene key={scene.id} script={activeScript} />
     if (scene.visual_type === 'fii_dii') return <FiiDiiScene key={scene.id} script={activeScript} />
     if (scene.visual_type === 'signal_spotlight') return <SignalSpotlightScene key={scene.id} script={activeScript} />
+    if (scene.visual_type === 'ipo_tracker') return <IpoTrackerScene key={scene.id} payload={ipoData ?? activeScript.data.ipo_tracker ?? null} />
     return <OutroScene key={scene.id} />
   }
 
@@ -468,6 +726,7 @@ export default function VideoPage() {
       )}
 
       {hasGenerated && !loadingScript && (
+        <>
         <div className='grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4'>
           <section className='rounded-xl border border-[#30363d] bg-[#161b22] p-4'>
             <div className='aspect-video rounded-lg border border-[#30363d] bg-[#0f172a] overflow-hidden'>
@@ -545,6 +804,10 @@ export default function VideoPage() {
             </div>
           </aside>
         </div>
+
+        {fiiDiiData && fiiDiiData.flows.length > 0 && <FiiDiiChart payload={fiiDiiData} />}
+
+        </>
       )}
     </main>
   )

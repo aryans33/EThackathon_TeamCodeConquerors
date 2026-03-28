@@ -351,11 +351,11 @@ function WatchlistSection() {
   const [stocks, setStocks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const FALLBACK_STOCKS = [
-    { symbol: "TATAMOTORS", name: "Tata Motors Ltd", current_price: 670.26, change_pct: -0.51, closes: [673.70, 670.26] },
-    { symbol: "HDFCBANK", name: "HDFC Bank", current_price: 1308.61, change_pct: -1.03, closes: [1322.24, 1308.61] },
-    { symbol: "INFY", name: "Infosys Ltd", current_price: 2120.04, change_pct: 1.93, closes: [2079.90, 2120.04] },
-    { symbol: "RELIANCE", name: "Reliance Industries Ltd", current_price: 2901.01, change_pct: -0.50, closes: [2915.59, 2901.01] },
-    { symbol: "SBIN", name: "State Bank of India", current_price: 1229.55, change_pct: 1.44, closes: [1212.10, 1229.55] },
+    { symbol: "TATAMOTORS", name: "Tata Motors Ltd", current_price: 670.26, change_pct: -0.51, closes: [678.4, 676.9, 675.8, 674.6, 673.9, 672.4, 671.5, 670.26] },
+    { symbol: "HDFCBANK", name: "HDFC Bank", current_price: 1308.61, change_pct: -1.03, closes: [1328.8, 1324.1, 1320.4, 1318.2, 1315.4, 1312.8, 1310.6, 1308.61] },
+    { symbol: "INFY", name: "Infosys Ltd", current_price: 2120.04, change_pct: 1.93, closes: [2054.8, 2061.7, 2070.2, 2082.5, 2093.1, 2104.6, 2112.3, 2120.04] },
+    { symbol: "RELIANCE", name: "Reliance Industries Ltd", current_price: 2901.01, change_pct: -0.50, closes: [2931.6, 2927.2, 2922.7, 2918.8, 2914.5, 2910.9, 2906.3, 2901.01] },
+    { symbol: "SBIN", name: "State Bank of India", current_price: 1229.55, change_pct: 1.44, closes: [1206.2, 1210.6, 1215.3, 1219.8, 1222.9, 1225.7, 1228.1, 1229.55] },
   ];
 
   const fetchStocks = async () => {
@@ -365,14 +365,17 @@ function WatchlistSection() {
       const enriched = await Promise.all(
         allStocks.map(async (stock) => {
           try {
-            const ohlcv = await getOHLCV(stock.symbol, 2);
-            const rows = (ohlcv || []).slice(-2);
+            const ohlcv = await getOHLCV(stock.symbol, 14);
+            const rows = (ohlcv || [])
+              .slice()
+              .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+              .slice(-12);
             if (rows.length < 2) {
               return null;
             }
 
-            const prev = Number(rows[0].close);
-            const latest = Number(rows[1].close);
+            const prev = Number(rows[rows.length - 2].close);
+            const latest = Number(rows[rows.length - 1].close);
             const change = latest - prev;
             const changePct = prev ? (change / prev) * 100 : 0;
 
@@ -415,22 +418,43 @@ function WatchlistSection() {
   }, []);
 
   const Sparkline = ({ closes, positive }: { closes: number[]; positive: boolean }) => {
-    const points = closes.length > 1 ? closes : [closes[0] || 0, closes[0] || 0];
+    const rawPoints = closes.length > 1 ? closes : [closes[0] || 0, closes[0] || 0];
+    const points = rawPoints.length > 12
+      ? rawPoints.filter((_, i) => i % Math.ceil(rawPoints.length / 12) === 0).slice(-12)
+      : rawPoints;
     const min = Math.min(...points);
     const max = Math.max(...points);
     const range = Math.max(max - min, 1);
+    const width = 64;
+    const height = 24;
+    const baseY = height - 1;
+    const stroke = positive ? "#22c55e" : "#ef4444";
 
-    const d = points
-      .map((v, i) => {
-        const x = (i / (points.length - 1 || 1)) * 60;
-        const y = 22 - ((v - min) / range) * 20;
-        return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+    const coords = points.map((v, i) => {
+      const x = (i / (points.length - 1 || 1)) * width;
+      const y = 2 + (1 - (v - min) / range) * (height - 6);
+      return { x, y };
+    });
+
+    const linePath = coords
+      .map((p, i, arr) => {
+        if (i === 0) return `M${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+        const prev = arr[i - 1];
+        const cx = ((prev.x + p.x) / 2).toFixed(1);
+        return `Q${prev.x.toFixed(1)},${prev.y.toFixed(1)} ${cx},${((prev.y + p.y) / 2).toFixed(1)} T${p.x.toFixed(1)},${p.y.toFixed(1)}`;
       })
       .join(" ");
 
+    const areaPath = `${linePath} L${width},${baseY} L0,${baseY} Z`;
+
+    const last = coords[coords.length - 1];
+
     return (
-      <svg width="60" height="24" viewBox="0 0 60 24" style={{ opacity: 0.9 }}>
-        <path d={d} fill="none" stroke={positive ? "#22c55e" : "#ef4444"} strokeWidth="1.8" />
+      <svg width="64" height="24" viewBox="0 0 64 24" style={{ opacity: 0.95 }}>
+        <path d={areaPath} fill={stroke} opacity={0.14} />
+        <path d={linePath} fill="none" stroke={stroke} strokeWidth="3.4" opacity={0.24} strokeLinecap="round" />
+        <path d={linePath} fill="none" stroke={stroke} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={last.x} cy={last.y} r="1.8" fill={stroke} />
       </svg>
     );
   };

@@ -41,6 +41,20 @@ export default function PatternCard({ pattern }: { pattern: any }) {
                     </span>
                 </div>
             </div>
+
+            {pattern.backtest?.win_rate !== null && pattern.backtest?.win_rate !== undefined && (
+                <div className="mt-3 p-2 bg-slate-900/40 rounded-md text-sm border border-slate-700">
+                    <span className="font-medium text-brand-green">
+                        {pattern.backtest.win_rate}% win rate
+                    </span>
+                    <span className="text-slate-400 ml-2">
+                        · avg {pattern.backtest.avg_return >= 0 ? '+' : ''}{pattern.backtest.avg_return}% over {pattern.backtest.forward_days}d
+                    </span>
+                    <span className="text-xs text-slate-500 block mt-0.5">
+                        Based on {pattern.backtest.sample_size} historical signals on this stock
+                    </span>
+                </div>
+            )}
         </div>
     )
 }

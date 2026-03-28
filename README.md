@@ -147,12 +147,15 @@ Key API routes:
 ### 7. AI Market Video Engine
 
 - Builds a daily market-wrap script using database context + Groq
+- Enriches script context with FII/DII flows, IPO tracker data, and latest filing fallback details
 - Uses Redis caching (30-minute TTL) to avoid repeated LLM calls during demos
 - Always returns valid script JSON with fallback payload on generation/parsing errors
 
 Key API route:
 
 - `GET /api/video/daily-script`
+- `GET /api/video/fii-dii-flows`
+- `GET /api/video/ipo-tracker`
 
 ## Technology Stack
 
@@ -330,6 +333,8 @@ Typical local expectations:
 - `GET /api/portfolio/{portfolio_id}`
 - `POST /api/chat/`
 - `GET /api/video/daily-script`
+- `GET /api/video/fii-dii-flows`
+- `GET /api/video/ipo-tracker`
 
 ## Troubleshooting
 

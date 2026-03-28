@@ -15,7 +15,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
-from app.models.tables import Signal, ChatMessage, Portfolio, Stock
+from app.models.tables import Signal, ChatMessage, Portfolio, Stock, Filing
 from app.config import settings
 
 # Groq sync client (AsyncGroq has issues with streaming in thread pools)
@@ -158,6 +158,89 @@ async def get_top_signals_today(db) -> list[str]:
         f"{s.stock.symbol if s.stock else '?'}: {s.one_line_summary} (confidence: {s.confidence}%)"
         for s in signals
     ]
+
+
+def _extract_symbols(query: str) -> list[str]:
+    return list(dict.fromkeys(re.findall(r"\b[A-Z]{2,12}\b", query.upper())))
+
+
+async def build_context_with_citations(
+    db,
+    user_message: str,
+    session_id: str,
+    include_portfolio: bool,
+) -> tuple[str, list[dict]]:
+    """Build prompt context and normalized source citations for chat responses."""
+    context_parts: list[str] = []
+    citations: list[dict] = []
+
+    top_signals = await get_top_signals_today(db)
+    if top_signals:
+        context_parts.append("TODAY'S TOP SIGNALS:\n" + "\n".join(top_signals))
+
+    relevant_signals = await retrieve_relevant_signals(user_message, db)
+    symbol_signals = await retrieve_symbol_signals(user_message, db)
+    all_signals = list({f"{s['symbol']}::{s['summary']}": s for s in (symbol_signals + relevant_signals)}.values())
+
+    if all_signals:
+        signal_lines: list[str] = []
+        for idx, s in enumerate(all_signals[:8], start=1):
+            cite_id = f"sig_{idx}"
+            signal_lines.append(
+                f"[{cite_id}] {s['symbol']} - {s['summary']} "
+                f"(confidence {s['confidence']}%, action {s['action_hint']})"
+            )
+            citations.append({
+                "id": cite_id,
+                "type": "signal",
+                "label": f"{s['symbol']} opportunity signal",
+                "date": "recent",
+                "source": "ET Radar Opportunity Engine",
+            })
+        context_parts.append("RELEVANT SIGNALS:\n" + "\n".join(signal_lines))
+
+    mentioned_symbols = _extract_symbols(user_message)
+    if mentioned_symbols:
+        filings_result = await db.execute(
+            select(Filing, Stock.symbol)
+            .join(Stock, Stock.id == Filing.stock_id)
+            .where(Stock.symbol.in_(mentioned_symbols))
+            .order_by(desc(Filing.date))
+            .limit(6)
+        )
+        filings = filings_result.all()
+
+        filing_lines: list[str] = []
+        for idx, (filing, symbol) in enumerate(filings, start=1):
+            cite_id = f"fil_{idx}"
+            snippet = " ".join((filing.raw_text or "").split())[:120] or f"{symbol} filing update"
+            filing_lines.append(
+                f"[{cite_id}] {symbol} filing on {filing.date.strftime('%d %b %Y')} "
+                f"({filing.category}): {snippet}"
+            )
+            citations.append({
+                "id": cite_id,
+                "type": "filing",
+                "label": snippet,
+                "date": filing.date.strftime("%d %b %Y"),
+                "source": "NSE / BSE Filing Database",
+            })
+        if filing_lines:
+            context_parts.append("RELEVANT FILINGS:\n" + "\n".join(filing_lines))
+
+    if include_portfolio:
+        portfolio_summary = await get_portfolio_summary(session_id, db)
+        if portfolio_summary:
+            context_parts.append(f"USER PORTFOLIO:\n{portfolio_summary}")
+            citations.append({
+                "id": "portfolio",
+                "type": "portfolio",
+                "label": "User portfolio analysis",
+                "date": "current",
+                "source": "Uploaded CAMS/KFintech statement",
+            })
+
+    return "\n\n".join(context_parts), citations
 
 
 def _run_groq_stream_sync(messages: list, system: str) -> str:

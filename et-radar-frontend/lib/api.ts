@@ -127,13 +127,13 @@ export async function getPortfolioById(portfolioId: number | string) {
 }
 
 // Read app/routes/chat.py — this is a streaming endpoint
-export async function streamChat(
+export type ChatStreamEvent = string | { type: 'citations'; citations: Citation[] }
+
+export async function* streamChat(
   message: string,
   sessionId: string,
   includePortfolio: boolean,
-  onToken: (token: string) => void,
-  onDone: () => void
-) {
+): AsyncGenerator<ChatStreamEvent, void, unknown> {
   const res = await fetch(`${BASE}/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -148,12 +148,82 @@ export async function streamChat(
   
   const reader = res.body!.getReader()
   const decoder = new TextDecoder()
+  let buffer = ''
   
   while (true) {
     const { done, value } = await reader.read()
-    if (done) { onDone(); break }
-    const chunk = decoder.decode(value)
-    onToken(chunk)
+    if (done) {
+      // Flush leftover for legacy plain-text streams (no SSE framing).
+      const tail = buffer.trim()
+      if (tail) {
+        if (tail.startsWith('data:')) {
+          const data = tail.replace(/^data:\s*/, '').trim()
+          if (data && data !== '[DONE]') {
+            try {
+              const parsed = JSON.parse(data) as { type?: string; content?: string; citations?: Citation[] }
+              if (parsed.type === 'token') {
+                yield parsed.content || ''
+              } else if (parsed.type === 'citations') {
+                yield { type: 'citations', citations: (parsed.citations || []) as Citation[] }
+              }
+            } catch {
+              yield data
+            }
+          }
+        } else {
+          yield tail
+        }
+      }
+      break
+    }
+
+    buffer += decoder.decode(value, { stream: true })
+
+    // Compatibility mode: legacy backend can stream plain text chunks directly.
+    if (!buffer.includes('data:') && !buffer.includes('\n\n')) {
+      const plain = buffer
+      buffer = ''
+      if (plain) {
+        yield plain
+      }
+      continue
+    }
+    const events = buffer.split('\n\n')
+    buffer = events.pop() || ''
+
+    for (const evt of events) {
+      const line = evt
+        .split('\n')
+        .find((l) => l.startsWith('data:'))
+
+      // Legacy fallback for non-SSE framed event blocks.
+      if (!line) {
+        const legacy = evt.trim()
+        if (legacy) {
+          yield legacy
+        }
+        continue
+      }
+      const data = line.replace(/^data:\s*/, '').trim()
+
+      if (data === '[DONE]') {
+        return
+      }
+
+      try {
+        const parsed = JSON.parse(data) as { type?: string; content?: string; citations?: Citation[] }
+        if (parsed.type === 'token') {
+          yield parsed.content || ''
+        } else if (parsed.type === 'citations') {
+          yield { type: 'citations', citations: (parsed.citations || []) as Citation[] }
+        } else if (parsed.type === 'done') {
+          return
+        }
+      } catch {
+        // Backward compatibility for older plain-token streams.
+        yield data
+      }
+    }
   }
 }
 
@@ -199,6 +269,13 @@ export interface Pattern {
     occurrences: number
     success_rate: number  // 0.0 to 1.0
     avg_return_pct: number
+    win_rate?: number | null
+    avg_return?: number | null
+    best_return?: number | null
+    worst_return?: number | null
+    sample_size?: number
+    forward_days?: number
+    note?: string
   }
 }
 
@@ -245,4 +322,12 @@ export interface PortfolioHistoryItem {
   created_at: string
   total_value: number
   xirr: number | null
+}
+
+export interface Citation {
+  id: string
+  type: 'filing' | 'signal' | 'portfolio' | string
+  label: string
+  date: string
+  source: string
 }

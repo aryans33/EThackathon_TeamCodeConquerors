@@ -34,6 +34,8 @@ Open http://localhost:3000
 The video page calls:
 
 - `GET /api/video/daily-script`
+- `GET /api/video/fii-dii-flows`
+- `GET /api/video/ipo-tracker`
 
 The chat page uses streaming response from:
 

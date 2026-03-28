@@ -46,29 +46,55 @@ class FilingRowOut(BaseModel):
 
 
 class LatestFilingOut(BaseModel):
-    id: int
-    date: str
+    symbol: str
+    company_name: str
+    title: str
     category: str
-    headline: str
+    filing_date: str
+    confidence_score: int
+    summary: str
     source_url: Optional[str]
-    stock_symbol: Optional[str]
-    stock_name: Optional[str]
 
 
-def _headline(raw_text: str) -> str:
-    return (raw_text or "")[:120]
+def _split_title_summary(raw_text: str) -> tuple[str, str]:
+    text = (raw_text or "").strip()
+    if "||" in text:
+        left, right = text.split("||", 1)
+        return left.strip(), right.strip()
+
+    if ". " in text:
+        left, right = text.split(". ", 1)
+        return left.strip(), right.strip()
+
+    short = text[:120].strip()
+    return short, text
+
+
+def _confidence_from_category(category: str) -> int:
+    mapping = {
+        "Earnings": 82,
+        "Bulk Deals": 76,
+        "Management": 69,
+        "Expansion": 73,
+    }
+    return mapping.get(category, 70)
 
 
 def format_filing(f: Filing, stocks_by_id: dict[int, Stock]) -> LatestFilingOut:
     stock = stocks_by_id.get(f.stock_id) if f.stock_id else None
+    symbol = stock.symbol if stock else "UNKNOWN"
+    company_name = stock.name if stock and stock.name else symbol
+    title, summary = _split_title_summary(f.raw_text)
+
     return LatestFilingOut(
-        id=f.id,
-        date=f.date.isoformat(),
+        symbol=symbol,
+        company_name=company_name,
+        title=title,
         category=f.category,
-        headline=_headline(f.raw_text),
+        filing_date=f.date.isoformat(),
+        confidence_score=_confidence_from_category(f.category),
+        summary=summary,
         source_url=f.source_url,
-        stock_symbol=stock.symbol if stock else None,
-        stock_name=stock.name if stock else None,
     )
 
 
@@ -86,7 +112,7 @@ def _serialize_row(f: BSEFiling) -> FilingRowOut:
         id=f.id,
         stock_symbol=stock_symbol,
         category=f.category,
-        headline=_headline(f.raw_text),
+        headline=_split_title_summary(f.raw_text)[0],
         raw_text=f.raw_text,
         source_url=f.source_url,
         published_at=published_at.isoformat().replace("+00:00", "Z"),

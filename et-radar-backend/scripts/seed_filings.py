@@ -1,97 +1,112 @@
 import asyncio
 from datetime import datetime, timedelta
 
-from sqlalchemy import select, insert
-from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy import select, text
 
 from app.database import AsyncSessionLocal
 from app.models.tables import Filing, Stock
 
 
-CATEGORIES = {
-    "Earnings Beat",
-    "Earnings Miss",
-    "Bulk Deal",
-    "Expansion",
-    "Management Change",
-    "Regulatory",
-    "Dividend",
+TARGET_SYMBOLS = [
+    "RELIANCE",
+    "TCS",
+    "INFY",
+    "HDFCBANK",
+    "ICICIBANK",
+    "SBIN",
+    "TATAMOTORS",
+    "WIPRO",
+    "LT",
+    "BAJFINANCE",
+]
+
+COMPANY_MAP = {
+    "RELIANCE": "Reliance Industries Limited",
+    "TCS": "Tata Consultancy Services Limited",
+    "INFY": "Infosys Limited",
+    "HDFCBANK": "HDFC Bank Limited",
+    "ICICIBANK": "ICICI Bank Limited",
+    "SBIN": "State Bank of India",
+    "TATAMOTORS": "Tata Motors Limited",
+    "WIPRO": "Wipro Limited",
+    "LT": "Larsen & Toubro Limited",
+    "BAJFINANCE": "Bajaj Finance Limited",
 }
 
+FILING_TEMPLATES = [
+    {
+        "category": "Earnings",
+        "title": "Board meeting to consider Q3 results",
+        "summary": "Board meeting scheduled for quarterly results and margin outlook update with management commentary.",
+        "slug": "board-meeting-q3-results",
+    },
+    {
+        "category": "Management",
+        "title": "Management change: CFO resignation announced",
+        "summary": "Company disclosed CFO resignation with interim transition committee and search process details.",
+        "slug": "management-change-cfo-resignation",
+    },
+    {
+        "category": "Bulk Deals",
+        "title": "Bulk deal: Goldman Sachs acquires 1.2cr shares",
+        "summary": "Large institutional acquisition disclosed through exchange filing, indicating accumulation at current levels.",
+        "slug": "bulk-deal-goldman-sachs",
+    },
+    {
+        "category": "Expansion",
+        "title": "Capex announcement: INR 8,000cr greenfield plant",
+        "summary": "Board approved multi-year expansion capex for new capacity with phased commissioning timeline.",
+        "slug": "capex-greenfield-plant",
+    },
+    {
+        "category": "Earnings",
+        "title": "Pre-quarter update indicates stable order book",
+        "summary": "Company shared pre-quarter business update and reiterated guidance on revenue and operating margin.",
+        "slug": "pre-quarter-update",
+    },
+    {
+        "category": "Management",
+        "title": "Board appoints new independent director",
+        "summary": "Board approved appointment of independent director with sector expertise effective next month.",
+        "slug": "new-independent-director",
+    },
+    {
+        "category": "Bulk Deals",
+        "title": "Block trade: domestic mutual fund raises stake",
+        "summary": "Domestic institution disclosed block trade purchase in the company at a marginal premium.",
+        "slug": "block-trade-domestic-mf",
+    },
+    {
+        "category": "Expansion",
+        "title": "New capacity addition approved for FY27",
+        "summary": "Capacity expansion approved to meet demand growth with capex split across two financial years.",
+        "slug": "capacity-addition-fy27",
+    },
+]
 
-def build_payloads(today):
-    return [
-        {
-            "symbol": "TATAMOTORS",
-            "category": "Earnings Beat",
-            "raw_text": "Q3 PAT up 48% YoY, beats street estimates by 12%",
-            "date": (today - timedelta(days=2)).date(),
-            "source_url": "https://demo.et-radar.local/filings/tatamotors-q3-beat",
-        },
-        {
-            "symbol": "HDFCBANK",
-            "category": "Bulk Deal",
-            "raw_text": "Goldman Sachs acquires 1.5 crore shares at ₹1,642 per share",
-            "date": (today - timedelta(days=3)).date(),
-            "source_url": "https://demo.et-radar.local/filings/hdfcbank-bulk-deal",
-        },
-        {
-            "symbol": "RELIANCE",
-            "category": "Expansion",
-            "raw_text": "Board approves ₹75,000 crore green energy capex over 3 years",
-            "date": (today - timedelta(days=1)).date(),
-            "source_url": "https://demo.et-radar.local/filings/reliance-green-capex",
-        },
-        {
-            "symbol": "SBIN",
-            "category": "Earnings Miss",
-            "raw_text": "Q3 NPA provisions surge 22%, net profit below analyst consensus",
-            "date": (today - timedelta(days=4)).date(),
-            "source_url": "https://demo.et-radar.local/filings/sbin-q3-miss",
-        },
-        {
-            "symbol": "INFY",
-            "category": "Management Change",
-            "raw_text": "COO resignation announced post market hours, transition plan unclear",
-            "date": (today - timedelta(days=2)).date(),
-            "source_url": "https://demo.et-radar.local/filings/infy-management-change",
-        },
-        {
-            "symbol": "TCS",
-            "category": "Earnings Beat",
-            "raw_text": "Q3 revenue up 5.6% QoQ, deal wins at $10.2 billion TCV",
-            "date": (today - timedelta(days=5)).date(),
-            "source_url": "https://demo.et-radar.local/filings/tcs-q3-beat",
-        },
-        {
-            "symbol": "TITAN",
-            "category": "Expansion",
-            "raw_text": "Tanishq to open 50 new stores in Tier 2 cities by FY26",
-            "date": (today - timedelta(days=3)).date(),
-            "source_url": "https://demo.et-radar.local/filings/titan-expansion",
-        },
-        {
-            "symbol": "BAJFINANCE",
-            "category": "Regulatory",
-            "raw_text": "RBI circular on NBFC liquidity norms impacts AUM growth guidance",
-            "date": (today - timedelta(days=6)).date(),
-            "source_url": "https://demo.et-radar.local/filings/bajfinance-rbi-circular",
-        },
-        {
-            "symbol": "ADANIENT",
-            "category": "Bulk Deal",
-            "raw_text": "LIC increases stake by 2.1%, buys 3.2 crore shares at ₹2,410",
-            "date": (today - timedelta(days=1)).date(),
-            "source_url": "https://demo.et-radar.local/filings/adanient-bulk-deal",
-        },
-        {
-            "symbol": "WIPRO",
-            "category": "Dividend",
-            "raw_text": "Board declares interim dividend of ₹5 per share, record date next month",
-            "date": (today - timedelta(days=7)).date(),
-            "source_url": "https://demo.et-radar.local/filings/wipro-dividend",
-        },
-    ]
+
+def build_payloads(today: datetime) -> list[dict]:
+    payloads: list[dict] = []
+
+    # Create 20 filings over the last 14 days, cycling symbols and templates.
+    for i in range(20):
+        symbol = TARGET_SYMBOLS[i % len(TARGET_SYMBOLS)]
+        tpl = FILING_TEMPLATES[i % len(FILING_TEMPLATES)]
+        filing_date = (today - timedelta(days=i % 14)).date()
+
+        payloads.append(
+            {
+                "symbol": symbol,
+                "company_name": COMPANY_MAP[symbol],
+                "category": tpl["category"],
+                "title": tpl["title"],
+                "summary": tpl["summary"],
+                "date": filing_date,
+                "source_url": f"https://demo.et-radar.local/filings/{symbol.lower()}-{tpl['slug']}-{i + 1}",
+            }
+        )
+
+    return payloads
 
 
 async def seed_filings() -> None:
@@ -99,6 +114,9 @@ async def seed_filings() -> None:
     payloads = build_payloads(now)
 
     async with AsyncSessionLocal() as session:
+        # Clear existing rows to keep deterministic, non-duplicated demo output.
+        await session.execute(text("TRUNCATE TABLE filings RESTART IDENTITY CASCADE"))
+
         # 1) Resolve stock IDs by symbol
         symbols = [p["symbol"] for p in payloads]
         stock_rows = await session.execute(select(Stock.id, Stock.symbol).where(Stock.symbol.in_(symbols)))
@@ -111,42 +129,23 @@ async def seed_filings() -> None:
         # 2) Build filing rows
         filings_rows = []
         for p in payloads:
-            if p["category"] not in CATEGORIES:
-                raise ValueError(f"Invalid category: {p['category']}")
-
             filings_rows.append(
                 {
                     "stock_id": symbol_to_id[p["symbol"]],
                     "date": p["date"],
                     "category": p["category"],
-                    "raw_text": p["raw_text"],
+                    # Store title and summary in raw_text; API will split it cleanly.
+                    "raw_text": f"{p['title']} || {p['summary']}",
                     "source_url": p["source_url"],
                 }
             )
 
-        # 3) Pre-check to avoid duplicates even if unique constraints are absent
-        seeded_count = 0
+        # 3) Insert rows
         for row in filings_rows:
-            exists_stmt = select(Filing.raw_text).where(
-                Filing.stock_id == row["stock_id"],
-                Filing.date == row["date"],
-                Filing.category == row["category"],
-            )
-            existing = await session.execute(exists_stmt)
-            existing_texts = [r.raw_text for r in existing.all()]
-
-            # Normalize currency token so old "Rs" rows are treated as duplicates
-            normalized_new = row["raw_text"].replace("₹", "Rs ")
-            if any(t.replace("₹", "Rs ") == normalized_new for t in existing_texts):
-                continue
-
-            # Requirement: use ON CONFLICT DO NOTHING
-            stmt = pg_insert(Filing).values(**row).on_conflict_do_nothing()
-            await session.execute(stmt)
-            seeded_count += 1
+            session.add(Filing(**row))
 
         await session.commit()
-        print(f"Seeded {seeded_count} filings successfully")
+        print(f"Seeded {len(filings_rows)} filings successfully")
 
 
 if __name__ == "__main__":

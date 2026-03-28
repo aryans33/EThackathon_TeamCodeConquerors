@@ -3,9 +3,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { setAuth } from '@/lib/auth'
+import { useToast } from '@/context/ToastContext'
 
 export default function AuthPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [mode, setMode] = useState<'login'|'signup'>('login')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -24,16 +26,24 @@ export default function AuthPage() {
     }
     setLoading(true)
     try {
-      const endpoint = mode === 'login' ? '/auth/login' : '/auth/signup'
+      const endpoint = mode === 'login' ? '/auth/login' : '/auth/register'
       const body = mode === 'login'
         ? { email, password }
         : { email, password, name }
       const r = await api.post(endpoint, body)
       setAuth(r.data.access_token, r.data.user)
+      toast.success(mode === 'login' ? 'Signed in successfully' : 'Account created successfully')
       router.push('/dashboard')
     } catch (e: any) {
-      const msg = e?.response?.data?.detail || 'Something went wrong'
-      setError(typeof msg === 'string' ? msg : 'Authentication failed')
+      const responseData = e?.response?.data
+      const detail = responseData?.detail
+      const msg = typeof detail === 'string'
+        ? detail
+        : typeof responseData === 'string'
+          ? responseData
+          : 'Authentication failed'
+      setError(msg)
+      toast.error(msg)
     } finally {
       setLoading(false)
     }

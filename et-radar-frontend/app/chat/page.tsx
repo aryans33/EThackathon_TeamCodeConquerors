@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { streamChat } from '@/lib/api'
+import { streamChat, type Citation } from '@/lib/api'
 import { getSessionId } from '@/lib/session'
 
 const CHAT_STORAGE_KEY = 'et_radar_chat_v1'
@@ -12,6 +12,7 @@ interface Message {
   timestamp: string
   isError?: boolean
   followUps?: string[]
+  citations?: Citation[]
 }
 
 interface ChatSession {
@@ -92,8 +93,6 @@ function capSessions(sessions: ChatSession[]): ChatSession[] {
 
 export default function ChatPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([])
-  const [streamingContent, setStreamingContent] = useState('')
-  const [streamingFollowUps, setStreamingFollowUps] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showTyping, setShowTyping] = useState(false)
   const [input, setInput] = useState('')
@@ -133,6 +132,21 @@ export default function ChatPage() {
           messages: [...next[idx].messages, message],
         }
       }
+
+      const capped = capSessions(next)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({ sessions: capped }))
+      }
+      return capped
+    })
+  }
+
+  const updateMessageById = (messageId: string, updater: (msg: Message) => Message) => {
+    setSessions((prev) => {
+      const next = prev.map((session) => ({
+        ...session,
+        messages: session.messages.map((msg) => (msg.id === messageId ? updater(msg) : msg)),
+      }))
 
       const capped = capSessions(next)
       if (typeof window !== 'undefined') {
@@ -205,7 +219,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [sessions, streamingContent, showTyping])
+  }, [sessions, showTyping])
 
   const submitQuestion = (text: string) => {
     setInput(text)
@@ -214,7 +228,7 @@ export default function ChatPage() {
 
   const handleSubmit = async (text: string = input.trim()) => {
     if (!text || isLoading) return
-    
+
     setInput('')
     appendMessage({
       id: makeId(),
@@ -222,53 +236,72 @@ export default function ChatPage() {
       content: text,
       timestamp: new Date().toISOString(),
     })
+
     setIsLoading(true)
     setShowTyping(true)
-    setStreamingContent('')
-    setStreamingFollowUps([])
-    
+
     try {
+      const assistantMessageId = makeId()
+      appendMessage({
+        id: assistantMessageId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date().toISOString(),
+        citations: [],
+      })
+
       let full = ''
-      let startedStreaming = false
-      await streamChat(
+      let latestCitations: Citation[] = []
+
+      for await (const evt of streamChat(
         text,
         getSessionId(),
         includePortfolio,
-        (token) => {
-          if (!startedStreaming) {
-            startedStreaming = true
+      )) {
+        if (typeof evt === 'string') {
+          if (showTyping) {
             setShowTyping(false)
           }
-          full += token
-          setStreamingContent(full)
-        },
-        async () => {
-          const assistantMsg: Message = {
-            id: makeId(),
-            role: 'assistant',
-            content: full,
-            timestamp: new Date().toISOString(),
-          }
-          appendMessage(assistantMsg)
-
-          const followUps = await getFollowUps(full)
-          if (followUps.length > 0) {
-            updateLastAssistantFollowUps(followUps)
-            setStreamingFollowUps(followUps)
-          }
-
-          setStreamingContent('')
-          setShowTyping(false)
-          setIsLoading(false)
+          full += evt
+          updateMessageById(assistantMessageId, (msg) => ({
+            ...msg,
+            content: msg.content + evt,
+          }))
+        } else if (evt.type === 'citations') {
+          latestCitations = evt.citations
+          updateMessageById(assistantMessageId, (msg) => ({
+            ...msg,
+            citations: evt.citations,
+          }))
         }
-      )
-    } catch (e) {
+      }
+
+      if (!full.trim()) {
+        updateMessageById(assistantMessageId, (msg) => ({
+          ...msg,
+          content: 'AI is temporarily unavailable. Please try again.',
+          isError: true,
+        }))
+      } else {
+        const followUps = await getFollowUps(full)
+        if (followUps.length > 0) {
+          updateMessageById(assistantMessageId, (msg) => ({
+            ...msg,
+            followUps,
+            citations: latestCitations,
+          }))
+        }
+      }
+
+      setShowTyping(false)
+      setIsLoading(false)
+    } catch {
       appendMessage({
         id: makeId(),
         role: 'assistant',
         content: 'AI is temporarily unavailable. Please try again.',
         timestamp: new Date().toISOString(),
-        isError: true
+        isError: true,
       })
       setShowTyping(false)
       setIsLoading(false)
@@ -294,7 +327,6 @@ export default function ChatPage() {
     if (!ok) return
     localStorage.removeItem(CHAT_STORAGE_KEY)
     setSessions([])
-    setStreamingContent('')
     setIsLoading(false)
     setShowTyping(false)
   }
@@ -434,6 +466,25 @@ export default function ChatPage() {
                           ))}
                         </div>
                       )}
+
+                      {msg.role === 'assistant' && msg.citations && msg.citations.length > 0 && (
+                        <div className="mt-3 ml-1 rounded-lg border border-[#2f4f75] bg-[#101827] px-3 py-2">
+                          <p className="text-[11px] font-medium text-[#9ca3af] mb-1">Sources</p>
+                          <div className="space-y-1">
+                            {msg.citations.map((c) => (
+                              <div key={`${msg.id}-${c.id}`} className="flex items-center gap-2 text-xs text-[#94a3b8]">
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    c.type === 'filing' ? 'bg-blue-500' : c.type === 'signal' ? 'bg-green-500' : 'bg-amber-500'
+                                  }`}
+                                />
+                                <span className="truncate">{c.label}</span>
+                                <span className="ml-auto whitespace-nowrap">{c.date} · {c.source}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -451,47 +502,6 @@ export default function ChatPage() {
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', animation: 'bounce 1s infinite 0.4s' }} />
                 </div>
               </div>
-            )}
-            
-            {/* STREAMING BUBBLE */}
-            {isLoading && streamingContent && (
-               <div className="flex justify-start">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full dark:bg-sky-900/40 light:bg-sky-200 dark:border-sky-800 light:border-sky-400 border flex items-center justify-center text-xs dark:text-[#7dd3fc] light:text-sky-700 font-bold mr-3 mt-1 select-none">
-                    ET
-                  </div>
-                  <div className="dark:bg-[#101827] light:bg-white dark:border-[#22314a] light:border-gray-300 border shadow-sm rounded-2xl rounded-tl-sm px-5 py-3 text-sm dark:text-[#e2e8f0] light:text-[#1f2937] max-w-[80%]">
-                    {renderMarkdown(streamingContent)}
-                    <span className="inline-block w-1.5 h-3.5 dark:bg-[#7dd3fc] light:bg-sky-600 animate-pulse ml-1 align-middle" />
-
-                    {streamingFollowUps.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {streamingFollowUps.map((q, idx) => (
-                          <button
-                            key={`stream-fu-${idx}`}
-                            onClick={() => submitQuestion(q)}
-                            className="px-3.5 py-1.5 text-xs rounded-full border transition-colors"
-                            style={{
-                              background: '#1f2937',
-                              border: '1px solid #374151',
-                              color: '#9ca3af',
-                              cursor: 'pointer',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.borderColor = '#3b82f6'
-                              e.currentTarget.style.color = '#93c5fd'
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.borderColor = '#374151'
-                              e.currentTarget.style.color = '#9ca3af'
-                            }}
-                          >
-                            {q}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-               </div>
             )}
             
             {/* INVISIBLE SCROLL ANCHOR */}
