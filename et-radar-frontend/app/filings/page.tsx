@@ -136,7 +136,7 @@ export default function FilingsPage() {
   const visibleFilings = useMemo(() => filings.filter((f) => matchesFilter(f, activeFilter)), [filings, activeFilter])
 
   return (
-    <main className="max-w-[900px] mx-auto px-4 py-6 md:py-8 space-y-4">
+    <main className="max-w-[900px] mx-auto px-4 py-6 md:py-8 space-y-4 min-h-screen dark:bg-black">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-content-primary text-2xl font-bold">Latest Filings</h1>
@@ -146,7 +146,7 @@ export default function FilingsPage() {
           type="button"
           onClick={handleRefresh}
           disabled={refreshing}
-          className="px-3 py-2 text-sm rounded-lg border border-border bg-surface-1 hover:border-amber-500 text-content-primary disabled:opacity-60 transition-colors"
+          className="px-3 py-2 text-sm rounded-lg border border-border dark:bg-black bg-surface-1 hover:border-amber-500 text-content-primary disabled:opacity-60 transition-colors"
         >
           {refreshing ? 'Refreshing...' : 'Refresh'}
         </button>
@@ -163,7 +163,7 @@ export default function FilingsPage() {
               className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
                 active
                   ? 'bg-amber-500/20 border-amber-500 text-amber-500'
-                  : 'bg-surface-1 border-border text-content-secondary hover:text-content-primary hover:border-amber-500'
+                  : 'dark:bg-black bg-surface-1 border-border text-content-secondary hover:text-content-primary hover:border-amber-500'
               }`}
             >
               {tab} ({counts[tab]})
@@ -175,7 +175,7 @@ export default function FilingsPage() {
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="rounded-[10px] border border-border bg-surface-1 p-5 animate-pulse">
+            <div key={i} className="rounded-[10px] border border-border dark:bg-black bg-surface-1 p-5 animate-pulse">
               <div className="h-4 w-40 bg-slate-300 dark:bg-slate-700 rounded" />
               <div className="h-4 w-72 bg-slate-300 dark:bg-slate-700 rounded mt-3" />
               <div className="h-3 w-full bg-slate-200 dark:bg-slate-800 rounded mt-2" />
@@ -184,7 +184,7 @@ export default function FilingsPage() {
           ))}
         </div>
       ) : visibleFilings.length === 0 ? (
-        <div className="rounded-[10px] border border-border bg-surface-1 px-6 py-10 text-center">
+        <div className="rounded-[10px] border border-border dark:bg-black bg-surface-1 px-6 py-10 text-center">
           <div className="text-5xl leading-none">-</div>
           <div className="text-content-primary text-lg font-semibold mt-3">No filings found</div>
           <div className="text-content-secondary text-sm mt-1">Try refreshing or check back after market hours</div>
@@ -197,7 +197,7 @@ export default function FilingsPage() {
               <article
                 key={f.id}
                 onClick={() => router.push(`/stock/${f.symbol}`)}
-                className="rounded-[10px] border border-border bg-surface-1 p-5 transition-colors hover:border-amber-500 cursor-pointer"
+                className="rounded-[10px] border border-border dark:bg-black bg-surface-1 p-5 transition-colors hover:border-amber-500 cursor-pointer"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>

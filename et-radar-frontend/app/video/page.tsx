@@ -251,13 +251,13 @@ function FiiDiiScene({ script }: { script: DailyScript }) {
   return (
     <div style={{ height: 360, padding: '14px 12px' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div style={{ border: '1px solid #334155', borderRadius: 10, padding: 12, background: '#0f172a' }}>
+        <div style={{ border: '1px solid #334155', borderRadius: 10, padding: 12, background: '#000000' }}>
           <div style={{ color: '#94a3b8', fontSize: 12 }}>FII Flow (₹ Cr)</div>
           <div style={{ marginTop: 4, color: fiiPos ? '#22c55e' : '#ef4444', fontWeight: 800, fontSize: 28 }}>
             {fiiPos ? '▲' : '▼'} {Math.abs(script.data.fii_flow).toLocaleString('en-IN')}
           </div>
         </div>
-        <div style={{ border: '1px solid #334155', borderRadius: 10, padding: 12, background: '#0f172a' }}>
+        <div style={{ border: '1px solid #334155', borderRadius: 10, padding: 12, background: '#000000' }}>
           <div style={{ color: '#94a3b8', fontSize: 12 }}>DII Flow (₹ Cr)</div>
           <div style={{ marginTop: 4, color: diiPos ? '#22c55e' : '#ef4444', fontWeight: 800, fontSize: 28 }}>
             {diiPos ? '▲' : '▼'} {Math.abs(script.data.dii_flow).toLocaleString('en-IN')}
@@ -381,7 +381,7 @@ function SignalSpotlightScene({ script }: { script: DailyScript }) {
           {display}%
         </div>
       </div>
-      <div style={{ marginTop: 10, width: '90%', maxWidth: 620, border: '1px solid #334155', borderRadius: 10, background: '#0f172a', padding: '10px 12px' }}>
+      <div style={{ marginTop: 10, width: '90%', maxWidth: 620, border: '1px solid #334155', borderRadius: 10, background: '#000000', padding: '10px 12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <div style={{ fontSize: 11, color: '#d4af37', letterSpacing: 1, textTransform: 'uppercase' }}>Latest Filing</div>
           <div style={{ fontSize: 11, color: '#94a3b8' }}>{latestFiling.date}</div>
@@ -401,7 +401,7 @@ function IpoTrackerScene({ payload }: { payload: IpoTrackerPayload | null }) {
   if (!hasData) {
     return (
       <div style={{ height: 360, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: '100%', maxWidth: 620, border: '1px solid #334155', borderRadius: 12, padding: 16, background: '#0f172a', textAlign: 'center' }}>
+        <div style={{ width: '100%', maxWidth: 620, border: '1px solid #334155', borderRadius: 12, padding: 16, background: '#000000', textAlign: 'center' }}>
           <div style={{ color: '#e2e8f0', fontWeight: 700 }}>IPO data updates daily at market open</div>
           <div style={{ color: '#94a3b8', marginTop: 6, fontSize: 13 }}>Try regenerating after the next exchange refresh window.</div>
         </div>
@@ -411,7 +411,7 @@ function IpoTrackerScene({ payload }: { payload: IpoTrackerPayload | null }) {
 
   return (
     <div style={{ height: 360, padding: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-      <div style={{ border: '1px solid #334155', borderRadius: 10, background: '#0f172a', padding: 10, overflowY: 'auto' }}>
+      <div style={{ border: '1px solid #334155', borderRadius: 10, background: '#000000', padding: 10, overflowY: 'auto' }}>
         <div style={{ color: '#cbd5e1', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Upcoming IPOs</div>
         <div style={{ display: 'grid', gap: 8 }}>
           {payload?.upcoming.map((ipo) => (
@@ -438,7 +438,7 @@ function IpoTrackerScene({ payload }: { payload: IpoTrackerPayload | null }) {
         </div>
       </div>
 
-      <div style={{ border: '1px solid #334155', borderRadius: 10, background: '#0f172a', padding: 10, overflowY: 'auto' }}>
+      <div style={{ border: '1px solid #334155', borderRadius: 10, background: '#000000', padding: 10, overflowY: 'auto' }}>
         <div style={{ color: '#cbd5e1', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Recent Listings</div>
         <div style={{ display: 'grid', gap: 8 }}>
           {payload?.recently_listed.map((ipo) => (
@@ -473,7 +473,7 @@ function OutroScene() {
       </div>
       <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
         {['Opportunity Radar', 'Pattern Detection', 'AI Chat'].map((p) => (
-          <span key={p} style={{ fontSize: 12, color: '#cbd5e1', border: '1px solid #334155', borderRadius: 999, padding: '6px 12px', background: '#0f172a' }}>
+          <span key={p} style={{ fontSize: 12, color: '#cbd5e1', border: '1px solid #334155', borderRadius: 999, padding: '6px 12px', background: '#000000' }}>
             {p}
           </span>
         ))}
@@ -690,7 +690,7 @@ export default function VideoPage() {
   }
 
   return (
-    <main className='max-w-7xl mx-auto px-4 md:px-6 py-6 space-y-4'>
+    <main className='max-w-7xl mx-auto px-4 md:px-6 py-6 space-y-4 dark:bg-black min-h-screen'>
       <div className='flex flex-wrap items-center justify-between gap-3'>
         <div>
           <h1 className='text-2xl font-bold text-content-primary'>Daily Market Wrap</h1>
@@ -729,7 +729,7 @@ export default function VideoPage() {
         <>
         <div className='grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4'>
           <section className='rounded-xl border border-border bg-surface-1 p-4'>
-            <div className='aspect-video rounded-lg border border-border bg-[#eef2f7] dark:bg-[#0f172a] overflow-hidden'>
+            <div className='aspect-video rounded-lg border border-border bg-[#eef2f7] dark:bg-black overflow-hidden'>
               <div style={{ height: 360, opacity: fadeIn ? 1 : 0, transition: 'opacity 0.15s ease-in-out' }}>
                 {isSpeaking && (
                   <div className='absolute right-8 mt-3 z-10 inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs bg-black/40 border border-black/60 text-[#d4af37]'>

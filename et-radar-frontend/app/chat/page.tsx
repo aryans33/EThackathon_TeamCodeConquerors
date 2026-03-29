@@ -342,9 +342,9 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="flex flex-col min-h-[calc(100dvh-65px)] md:h-[calc(100vh-65px)] dark:bg-[#0a0f1c] bg-gray-50 transition-colors">
+    <main className="flex flex-col min-h-[calc(100dvh-65px)] md:h-[calc(100vh-65px)] dark:bg-black bg-gray-50 transition-colors">
       {/* TOP BAR */}
-      <div className="flex flex-wrap justify-between items-center gap-2 px-4 md:px-6 py-3 md:py-4 dark:border-[#22314a] border-gray-300 border-b dark:bg-[#101827]/50 bg-white">
+      <div className="flex flex-wrap justify-between items-center gap-2 px-4 md:px-6 py-3 md:py-4 dark:border-[#2a2a2a] border-gray-300 border-b dark:bg-black/80 bg-white">
         <div className="flex items-center space-x-3">
           <h1 className="text-lg md:text-xl font-bold dark:text-[#f0fdf4] text-[#1f2937]">ET Radar AI</h1>
           <span className="w-2 h-2 rounded-full bg-[#d4af37] animate-pulse mt-1" />
@@ -352,7 +352,7 @@ export default function ChatPage() {
         
         <div className="flex items-center gap-2">
           {hasPortfolio && (
-            <label className="flex items-center space-x-2 cursor-pointer dark:bg-[#22314a] bg-gray-200 px-3 py-1.5 rounded-lg dark:border-[#2f4f75] border-gray-400 border dark:hover:border-[#3b82c4] hover:border-gray-500 transition-colors">
+            <label className="flex items-center space-x-2 cursor-pointer dark:bg-black bg-gray-200 px-3 py-1.5 rounded-lg dark:border-[#2a2a2a] border-gray-400 border dark:hover:border-[#d4af37] hover:border-gray-500 transition-colors">
               <input 
                 type="checkbox" 
                 checked={includePortfolio}
@@ -416,10 +416,10 @@ export default function ChatPage() {
                     <div className="flex flex-col max-w-[80%]">
                       <div className={`group relative px-5 py-3 text-sm ${
                         msg.role === 'user' 
-                          ? 'dark:bg-[#22314a] bg-black/5 rounded-2xl rounded-tr-sm dark:text-white text-black dark:border-[#2f4f75] border-black/20 border' 
+                            ? 'dark:bg-black bg-black/5 rounded-2xl rounded-tr-sm dark:text-white text-black dark:border-[#2a2a2a] border-black/20 border' 
                           : msg.isError
                             ? 'dark:bg-red-900/20 bg-red-100 dark:border-red-900 border-red-300 border rounded-2xl rounded-tl-sm dark:text-red-400 text-red-700'
-                            : 'dark:bg-[#101827] bg-white rounded-2xl rounded-tl-sm dark:text-[#e2e8f0] text-[#1f2937] dark:border-[#22314a] border-gray-300 border shadow-sm'
+                            : 'dark:bg-black bg-white rounded-2xl rounded-tl-sm dark:text-[#e2e8f0] text-[#1f2937] dark:border-[#2a2a2a] border-gray-300 border shadow-sm'
                       }`}>
                         {msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content}
 
@@ -511,7 +511,7 @@ export default function ChatPage() {
       </div>
 
       {/* INPUT BAR */}
-      <div className="p-4 dark:bg-[#101827] bg-white dark:border-[#22314a] border-gray-300 border-t">
+      <div className="p-4 dark:bg-black bg-white dark:border-[#2a2a2a] border-gray-300 border-t">
         <div className="max-w-3xl mx-auto relative flex items-end space-x-2">
           <textarea 
             value={input}
@@ -520,7 +520,7 @@ export default function ChatPage() {
             disabled={isLoading}
             placeholder="Ask about any stock, signal, or your portfolio..."
             rows={1}
-            className="flex-1 dark:bg-[#22314a] bg-gray-100 dark:border-[#2f4f75] border-gray-300 border rounded-xl px-4 py-3 text-sm dark:text-white text-[#1f2937] dark:placeholder-[#64748b] placeholder-gray-500 resize-none focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] disabled:opacity-50 min-h-[46px] max-h-32 overflow-y-auto transition-colors"
+            className="flex-1 dark:bg-black bg-gray-100 dark:border-[#2a2a2a] border-gray-300 border rounded-xl px-4 py-3 text-sm dark:text-white text-[#1f2937] dark:placeholder-[#64748b] placeholder-gray-500 resize-none focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] disabled:opacity-50 min-h-[46px] max-h-32 overflow-y-auto transition-colors"
           />
           <button 
             onClick={() => handleSubmit()}

@@ -377,7 +377,7 @@ export default function Dashboard() {
   }, [])
 
   return (
-    <main className="max-w-7xl mx-auto p-4 md:p-6 space-y-6 dark:bg-[#0a0f1c] bg-gray-50 transition-colors min-h-screen">
+    <main className="max-w-7xl mx-auto p-4 md:p-6 space-y-6 dark:bg-black bg-gray-50 transition-colors min-h-screen">
       {/* Top Search Bar */}
       <div ref={searchRef} className="relative">
         <input 
@@ -387,10 +387,10 @@ export default function Dashboard() {
           onFocus={() => setShowSearchDropdown(true)}
           onKeyDown={handleSearchKeyDown}
           placeholder="Search for a stock..."
-          className="w-full dark:bg-[#101827] bg-white dark:border-[#22314a] border-gray-300 border rounded-xl px-4 py-3 dark:text-[#e2e8f0] text-[#1f2937] dark:placeholder-[#64748b] placeholder-gray-500 focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-colors"
+          className="w-full dark:bg-black bg-white dark:border-[#2a2a2a] border-gray-300 border rounded-xl px-4 py-3 dark:text-[#e2e8f0] text-[#1f2937] dark:placeholder-[#64748b] placeholder-gray-500 focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-colors"
         />
         {showSearchDropdown && searchQuery.trim() && (
-          <div className="absolute top-14 left-0 right-0 dark:bg-[#101827] bg-white dark:border-[#22314a] border-gray-300 border rounded-xl overflow-hidden z-50 p-2 shadow-2xl">
+          <div className="absolute top-14 left-0 right-0 dark:bg-black bg-white dark:border-[#2a2a2a] border-gray-300 border rounded-xl overflow-hidden z-50 p-2 shadow-2xl">
             {filteredSearch.length === 0 ? (
               <div className="p-4 dark:text-[#64748b] text-gray-500">No stocks found</div>
             ) : (
@@ -416,7 +416,7 @@ export default function Dashboard() {
       </div>
 
       {/* Status Bar */}
-      <div className="flex items-center space-x-4 text-sm dark:text-[#64748b] text-gray-600 dark:bg-[#101827]/50 bg-gray-100 p-3 rounded-lg dark:border-[#22314a] border-gray-300 border transition-colors">
+      <div className="flex items-center space-x-4 text-sm dark:text-[#64748b] text-gray-600 dark:bg-black/70 bg-gray-100 p-3 rounded-lg dark:border-[#2a2a2a] border-gray-300 border transition-colors">
         <div className="flex items-center space-x-2">
           {statusInfo.isOk ? (
             <span className="w-2 h-2 rounded-full bg-[#d4af37]" style={{ animation: 'pulse-dot 2s ease-in-out infinite' }} />
@@ -452,12 +452,12 @@ export default function Dashboard() {
                   {isRefreshingSignals && <span className="inline-block animate-spin">↻</span>}
                 </div>
               </div>
-              <div className="flex space-x-2 dark:bg-[#101827] bg-gray-100 p-1 rounded-lg dark:border-[#22314a] border-gray-300 border">
+              <div className="flex space-x-2 dark:bg-black bg-gray-100 p-1 rounded-lg dark:border-[#2a2a2a] border-gray-300 border">
                 {['all', 'buy_watch', 'sell_watch'].map(tab => (
                   <button
                     key={tab}
                     onClick={() => setFilterAction(tab)}
-                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${filterAction === tab ? 'dark:bg-[#22314a] bg-white dark:text-white text-[#1f2937]' : 'dark:text-[#64748b] text-gray-600 dark:hover:text-[#e2e8f0] hover:text-[#1f2937]'}`}
+                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${filterAction === tab ? 'dark:bg-black bg-white dark:text-white text-[#1f2937] border border-[#2a2a2a]' : 'dark:text-[#64748b] text-gray-600 dark:hover:text-[#e2e8f0] hover:text-[#1f2937]'}`}
                   >
                     {tab === 'all' ? 'All' : tab === 'buy_watch' ? 'Buy Watch' : 'Sell Watch'}
                   </button>
@@ -491,7 +491,7 @@ export default function Dashboard() {
                   <div
                     key={signal.id}
                     onClick={() => router.push(`/stock/${signal.stock.symbol}`)}
-                    className="block dark:bg-[#101827] bg-white dark:border-[#22314a] border-gray-300 border p-5 rounded-xl transition-all hover:-translate-y-0.5 hover:border-[#d4af37] duration-200 cursor-pointer"
+                    className="block dark:bg-black bg-white dark:border-[#2a2a2a] border-gray-300 border p-5 rounded-xl transition-all hover:-translate-y-0.5 hover:border-[#d4af37] duration-200 cursor-pointer"
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-3">
